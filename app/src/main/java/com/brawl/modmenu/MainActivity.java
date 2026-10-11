@@ -4,7 +4,6 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -54,24 +53,7 @@ public class MainActivity extends Activity {
         a11y.setOnClickListener(v -> PermHelper.openA11y(this));
         ll.addView(a11y);
 
-        Button scr = new Button(this);
-        scr.setText("Шаг 3: стриминг экрана");
-        scr.setOnClickListener(v -> {
-            MediaProjectionManager mpm =
-                (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-            startActivityForResult(mpm.createScreenCaptureIntent(), 777);
-        });
-        ll.addView(scr);
-
         setContentView(ll);
-    }
-
-    @Override
-    protected void onActivityResult(int req, int res, Intent data) {
-        super.onActivityResult(req, res, data);
-        if (req == 777 && res == RESULT_OK && data != null) {
-            startForegroundService(MediaSniffer.buildIntent(this, res, data));
-        }
     }
 
     private void addBtn(LinearLayout p, String txt, View.OnClickListener l) {
