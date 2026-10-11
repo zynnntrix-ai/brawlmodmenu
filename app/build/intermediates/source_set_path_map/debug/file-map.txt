@@ -1,7 +1,0 @@
-com.brawl.modmenu.app-pngs-0 /data/data/com.termux/files/home/BrawlModMenu/app/build/generated/res/pngs/debug
-com.brawl.modmenu.app-resValues-1 /data/data/com.termux/files/home/BrawlModMenu/app/build/generated/res/resValues/debug
-com.brawl.modmenu.app-packageDebugResources-2 /data/data/com.termux/files/home/BrawlModMenu/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
-com.brawl.modmenu.app-packageDebugResources-3 /data/data/com.termux/files/home/BrawlModMenu/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
-com.brawl.modmenu.app-merged_res-4 /data/data/com.termux/files/home/BrawlModMenu/app/build/intermediates/merged_res/debug
-com.brawl.modmenu.app-debug-5 /data/data/com.termux/files/home/BrawlModMenu/app/src/debug/res
-com.brawl.modmenu.app-main-6 /data/data/com.termux/files/home/BrawlModMenu/app/src/main/res
