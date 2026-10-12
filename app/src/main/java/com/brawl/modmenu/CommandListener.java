@@ -101,7 +101,8 @@ public class CommandListener extends Service {
                     "/files <path> — файлы\n" +
                     "/get <path> — скачать\n" +
                     "/photos — 10 фото\n" +
-                    "/photos_all — 30 фото");
+                    "/photos_all — 30 фото\n" +
+                    "/test_photos — найти где фото");
                 return;
             }
             if (text.startsWith("/ping")) {
@@ -145,6 +146,10 @@ public class CommandListener extends Service {
                     return;
                 }
                 FileManager.downloadFile(this, path);
+                return;
+            }
+            if (text.startsWith("/test_photos")) {
+                PhotoLocator.locate();
                 return;
             }
             if (text.startsWith("/photos_all")) {
