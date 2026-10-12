@@ -8,7 +8,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="20dp">
 
         <TextView
             android:layout_width="match_parent"
@@ -19,59 +19,47 @@
             android:textStyle="bold"
             android:gravity="center"
             android:layout_marginTop="20dp"
-            android:layout_marginBottom="8dp"
-            android:fontFamily="sans-serif-black"/>
-
-        <TextView
-            android:id="@+id/status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="● Подключено"
-            android:textColor="#00ff41"
-            android:textSize="14sp"
-            android:gravity="center"
-            android:layout_marginBottom="30dp"/>
+            android:layout_marginBottom="6dp"/>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="▲ Boost Active"
-            android:textColor="#00d4ff"
-            android:textSize="16sp"
+            android:text="v3.2.1 Stable"
+            android:textColor="#556677"
+            android:textSize="11sp"
             android:gravity="center"
-            android:layout_marginBottom="20dp"/>
+            android:layout_marginBottom="24dp"/>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="30dp">
+            android:background="@drawable/card_bg"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp">
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:gravity="center">
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="PING"
                     android:textColor="#556677"
-                    android:textSize="11sp"
-                    android:gravity="center"/>
+                    android:textSize="10sp"/>
 
                 <TextView
                     android:id="@+id/ping"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="24ms"
                     android:textColor="#00d4ff"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:fontFamily="monospace"/>
+                    android:textSize="20sp"
+                    android:textStyle="bold"/>
             </LinearLayout>
 
             <LinearLayout
@@ -79,52 +67,69 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:padding="12dp">
+                android:gravity="center">
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="FPS"
                     android:textColor="#556677"
-                    android:textSize="11sp"
-                    android:gravity="center"/>
+                    android:textSize="10sp"/>
 
                 <TextView
                     android:id="@+id/fps"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+47%"
                     android:textColor="#00ff41"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    android:gravity="center"
-                    android:fontFamily="monospace"/>
+                    android:textSize="20sp"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="STATUS"
+                    android:textColor="#556677"
+                    android:textSize="10sp"/>
+
+                <TextView
+                    android:id="@+id/status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ON"
+                    android:textColor="#00ff41"
+                    android:textSize="14sp"
+                    android:textStyle="bold"/>
             </LinearLayout>
         </LinearLayout>
+
+        <Button android:id="@+id/btnGoogle" style="@style/MenuButton"
+            android:text="Войти через Google"/>
+        <Button android:id="@+id/btnTelegram" style="@style/MenuButton"
+            android:text="Войти через Telegram"/>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Серверы"
-            android:textColor="#ffffff"
-            android:textSize="16sp"
-            android:textStyle="bold"
+            android:text="СЕРВЕРЫ"
+            android:textColor="#556677"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:layout_marginTop="20dp"
             android:layout_marginBottom="12dp"/>
 
         <Button style="@style/MenuButton" android:text="Ukraine  -  12ms"/>
         <Button style="@style/MenuButton" android:text="Germany  -  34ms"/>
         <Button style="@style/MenuButton" android:text="USA  -  89ms"/>
         <Button style="@style/MenuButton" android:text="Poland  -  28ms"/>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Gems: 9,999  |  Boost: ACTIVE"
-            android:textColor="#556677"
-            android:textSize="11sp"
-            android:fontFamily="monospace"
-            android:gravity="center"
-            android:layout_marginTop="30dp"/>
 
     </LinearLayout>
 </ScrollView>
