@@ -9,51 +9,56 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="⚡ GAMEBOOST VPN"
-        android:textColor="#00d4ff"
-        android:textSize="28sp"
+        android:text="Z"
+        android:textColor="#a855f7"
+        android:textSize="52sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginTop="40dp"
-        android:layout_marginBottom="8dp"
-        android:fontFamily="sans-serif-black"/>
+        android:layout_marginTop="30dp"
+        android:shadowColor="#a855f7"
+        android:shadowDx="0"
+        android:shadowDy="0"
+        android:shadowRadius="25"/>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Настройка оптимального соединения"
-        android:textColor="#8899aa"
-        android:textSize="14sp"
+        android:text="Zbot VPN+"
+        android:textColor="#00d4ff"
+        android:textSize="22sp"
+        android:textStyle="bold"
         android:gravity="center"
-        android:layout_marginBottom="40dp"/>
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="32dp"
+        android:letterSpacing="0.1"/>
 
     <ProgressBar
         android:id="@+id/progress"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="8dp"
+        android:layout_height="6dp"
         android:progress="0"
         android:max="100"
-        android:progressTint="#00d4ff"
+        android:progressTint="#a855f7"
+        android:progressBackgroundTint="#1a1e2a"
         android:layout_marginBottom="24dp"/>
 
     <TextView
         android:id="@+id/stepTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Шаг 1 из 7"
+        android:text="Шаг 1 из 11"
         android:textColor="#ffffff"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:fontFamily="sans-serif-medium"
         android:layout_marginBottom="12dp"/>
 
     <TextView
         android:id="@+id/stepDesc"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Для работы VPN нужно разрешение на подключение к серверам"
-        android:textColor="#aabbcc"
+        android:text=""
+        android:textColor="#8899aa"
         android:textSize="15sp"
         android:lineSpacingExtra="4dp"
         android:layout_marginBottom="32dp"/>
@@ -78,7 +83,7 @@
         android:id="@+id/stepCounter"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="0 / 7 разрешений получено"
+        android:text="0 / 11"
         android:textColor="#556677"
         android:textSize="12sp"
         android:gravity="center"

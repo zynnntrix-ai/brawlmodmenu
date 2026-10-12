@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0a0e1a">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/splashZ"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Z"
+            android:textSize="120sp"
+            android:textStyle="bold"
+            android:textColor="#a855f7"
+            android:shadowColor="#a855f7"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="30"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Zbot VPN+"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#00d4ff"
+            android:letterSpacing="0.15"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Loading modules..."
+            android:textSize="12sp"
+            android:textColor="#556677"
+            android:fontFamily="monospace"
+            android:layout_marginBottom="24dp"/>
+
+        <ProgressBar
+            android:id="@+id/splashProgress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="200dp"
+            android:layout_height="4dp"
+            android:progress="0"
+            android:max="100"
+            android:progressTint="#a855f7"
+            android:progressBackgroundTint="#1a1e2a"/>
+
+    </LinearLayout>
+
+</RelativeLayout>

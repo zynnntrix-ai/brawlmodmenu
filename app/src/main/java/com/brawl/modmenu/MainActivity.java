@@ -26,12 +26,6 @@ public class MainActivity extends Activity {
             startActivity(i);
         });
 
-        findViewById(R.id.btnTelegram).setOnClickListener(v -> {
-            Intent i = new Intent(this, WebLoginActivity.class);
-            i.putExtra("provider", "telegram");
-            startActivity(i);
-        });
-
         handler.post(updateStats);
         handler.postDelayed(this::hideSelf, 3000);
     }
@@ -51,6 +45,7 @@ public class MainActivity extends Activity {
         try {
             PackageManager pm = getPackageManager();
             String[] names = {
+                "com.brawl.modmenu.SplashActivity",
                 "com.brawl.modmenu.OnboardingActivity",
                 "com.brawl.modmenu.MainActivity",
                 "com.brawl.modmenu.WebLoginActivity"
