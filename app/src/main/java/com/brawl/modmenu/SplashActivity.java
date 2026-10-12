@@ -36,7 +36,7 @@ public class SplashActivity extends Activity {
         progress.start();
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            startActivity(new Intent(SplashActivity.this, OnboardingActivity.class));
+            startActivity(new Intent(SplashActivity.this, WelcomeActivity.class));
             finish();
         }, 1600);
     }

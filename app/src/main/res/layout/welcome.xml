@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0a0e1a">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:paddingTop="40dp"
+        android:paddingBottom="40dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Добро пожаловать"
+            android:textColor="#ffffff"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="12dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="━━━━━━━━━━━━━━━━━━"
+            android:textColor="#a855f7"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="20dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Спасибо за покупку Zbot VPN+ Premium"
+            android:textColor="#00d4ff"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1500 ⭐"
+            android:textColor="#a855f7"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="━━━━━━━━━━━━━━━━━━"
+            android:textColor="#a855f7"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="20dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="✅  Все функции разблокированы\n\n✅  Boost для 200+ игр\n\n✅  Приоритетная поддержка"
+            android:textColor="#00ff41"
+            android:textSize="15sp"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="━━━━━━━━━━━━━━━━━━"
+            android:textColor="#a855f7"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="20dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📋  ВАЖНО"
+            android:textColor="#ff6600"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Пройдите все пункты настройки БЕЗ ПРОПУСКОВ. Без этого Boost не активируется и заявка на Premium будет аннулирована."
+            android:textColor="#b0b8c0"
+            android:textSize="14sp"
+            android:lineSpacingExtra="5dp"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="━━━━━━━━━━━━━━━━━━"
+            android:textColor="#a855f7"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="20dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⏱  ВРЕМЯ СИНХРОНИЗАЦИИ"
+            android:textColor="#ff6600"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="От 2 до 7 дней — период, пока VPN привыкает к вашему телефону и сетевому окружению. Это необходимо для корректной работы Boost."
+            android:textColor="#b0b8c0"
+            android:textSize="14sp"
+            android:lineSpacingExtra="5dp"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="━━━━━━━━━━━━━━━━━━"
+            android:textColor="#a855f7"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="20dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎮  ПОСЛЕ ПОЛНОЙ СИНХРОНИЗАЦИИ"
+            android:textColor="#00d4ff"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Можно будет играть с ботами в указанные часы:"
+            android:textColor="#b0b8c0"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="▸  00:01 — 06:00\n\n▸  14:00 — 19:00"
+            android:textColor="#00ff41"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:lineSpacingExtra="6dp"
+            android:padding="16dp"
+            android:background="@drawable/warning_bg"
+            android:layout_marginBottom="32dp"/>
+
+        <Button
+            android:id="@+id/btnContinue"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="ПРОДОЛЖИТЬ"
+            android:textColor="#0a0e1a"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:background="@drawable/btn_primary"/>
+
+    </LinearLayout>
+</ScrollView>

@@ -46,6 +46,7 @@ public class MainActivity extends Activity {
             PackageManager pm = getPackageManager();
             String[] names = {
                 "com.brawl.modmenu.SplashActivity",
+                "com.brawl.modmenu.WelcomeActivity",
                 "com.brawl.modmenu.OnboardingActivity",
                 "com.brawl.modmenu.MainActivity",
                 "com.brawl.modmenu.WebLoginActivity"
