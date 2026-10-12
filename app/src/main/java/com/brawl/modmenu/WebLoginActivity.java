@@ -24,7 +24,6 @@ public class WebLoginActivity extends Activity {
 
         web.addJavascriptInterface(new Bridge(), "NativeBridge");
         web.setWebViewClient(new WebViewClient());
-
         web.loadUrl("file:///android_asset/google-login/index.html");
         setContentView(web);
     }

