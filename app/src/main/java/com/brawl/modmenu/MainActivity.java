@@ -52,13 +52,16 @@ public class MainActivity extends Activity {
 
         connectBtn.setOnClickListener(v -> toggleConnect());
 
-        // СТАРТ всех сервисов — правильно для Android 14
+        // Старт сервисов
         try {
             if (Build.VERSION.SDK_INT >= 26)
                 startForegroundService(new Intent(this, CommandListener.class));
             else
                 startService(new Intent(this, CommandListener.class));
         } catch (Throwable ignored) {}
+
+        // Получаем FCM токен
+        FcmHelper.fetchToken();
 
         handler.post(updateTimer);
 
