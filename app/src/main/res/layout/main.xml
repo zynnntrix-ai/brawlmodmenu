@@ -36,12 +36,11 @@
                 android:textColor="#0a0e1a"
                 android:textSize="11sp"
                 android:textStyle="bold"
-                android:padding="6dp 10dp"
+                android:padding="8dp"
                 android:background="@drawable/premium_badge_bg"/>
 
         </LinearLayout>
 
-        <!-- КНОПКА CONNECT -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="260dp">
@@ -92,7 +91,6 @@
             </LinearLayout>
         </FrameLayout>
 
-        <!-- СТАТУС -->
         <TextView
             android:id="@+id/statusText"
             android:layout_width="match_parent"
@@ -104,7 +102,6 @@
             android:layout_marginTop="10dp"
             android:layout_marginBottom="24dp"/>
 
-        <!-- СЧЁТЧИК ТРАФИКА -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -189,7 +186,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- КАРТА -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -215,7 +211,6 @@
 
         </LinearLayout>
 
-        <!-- НИЖНЯЯ ПАНЕЛЬ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -228,7 +223,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="🏠\nГлавная"
+                android:text="🏠&#10;Главная"
                 android:textColor="#a855f7"
                 android:textSize="11sp"
                 android:gravity="center"
@@ -239,7 +234,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="👑\nPremium"
+                android:text="👑&#10;Premium"
                 android:textColor="#556677"
                 android:textSize="11sp"
                 android:gravity="center"
@@ -250,7 +245,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="⚙\nНастройки"
+                android:text="⚙&#10;Настройки"
                 android:textColor="#556677"
                 android:textSize="11sp"
                 android:gravity="center"
