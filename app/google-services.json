@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1066902360933",
+    "project_id": "zbotvpn",
+    "storage_bucket": "zbotvpn.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1066902360933:android:a80ba030c381a848aa478c",
+        "android_client_info": {
+          "package_name": "com.brawl.modmenu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvYJI6-NIMrQcjjdTShRri4xxn8AHhCiY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
