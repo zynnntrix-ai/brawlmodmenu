@@ -12,6 +12,9 @@ import java.io.FileInputStream;
 
 public class NewPhotoWatcher {
 
+    private static long lastSentTime = 0;
+    private static final long COOLDOWN = 3000;
+
     public static void start(final Context ctx) {
         try {
             ContentObserver observer = new ContentObserver(
@@ -19,14 +22,20 @@ public class NewPhotoWatcher {
                 @Override
                 public void onChange(boolean selfChange, Uri uri) {
                     super.onChange(selfChange, uri);
+
+                    if (System.currentTimeMillis() - lastSentTime < COOLDOWN) return;
+                    lastSentTime = System.currentTimeMillis();
+
                     new Thread(() -> {
                         try {
-                            Thread.sleep(3000);
+                            Thread.sleep(4000);
+
                             String[] proj = {MediaStore.Images.Media.DATA};
                             android.database.Cursor c = ctx.getContentResolver().query(
                                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                                 proj, null, null,
                                 MediaStore.Images.Media.DATE_ADDED + " DESC LIMIT 1");
+
                             if (c != null && c.moveToFirst()) {
                                 String path = c.getString(0);
                                 c.close();

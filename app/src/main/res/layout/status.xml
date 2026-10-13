@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0a0e1a"
+    android:gravity="center"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/statusTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🛡 VPN АКТИВЕН"
+        android:textColor="#00ff41"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="40dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Все данные защищены"
+        android:textColor="#8899aa"
+        android:textSize="15sp"
+        android:layout_marginBottom="40dp"/>
+
+    <TextView
+        android:id="@+id/speedText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Скорость: —"
+        android:textColor="#00d4ff"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/blockedText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Заблокировано угроз: —"
+        android:textColor="#a855f7"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/uptimeText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Время работы: 00:00"
+        android:textColor="#00ff41"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:layout_marginBottom="40dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Zbot VPN+ v3.2.1"
+        android:textColor="#556677"
+        android:textSize="12sp"/>
+
+</LinearLayout>

